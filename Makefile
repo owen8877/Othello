@@ -2,7 +2,7 @@
 
 DIR = bin
 BIN = $(DIR)/Othello
-OBJ = $(DIR)/main.o $(DIR)/element.o $(DIR)/game.o
+OBJ = $(DIR)/main.o $(DIR)/element.o $(DIR)/game.o $(DIR)/ai.o
 LIB = -Lfreeglut -Wl,-Bstatic -lglut -Wl,-Bdynamic -lGL -lX11 -lXxf86vm -g3 -lXi
 CXX = g++
 CXXFLAGS = -I"freeglut_l/include" -Wall -g3 -std=c++0x
@@ -25,6 +25,9 @@ $(DIR)/element.o : element.cpp element.h base.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(DIR)/game.o : game.cpp game.h
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(DIR)/ai.o : ai.cpp ai.h game.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 cleanbackup :

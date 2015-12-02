@@ -1,15 +1,15 @@
 #include "game.h"
 
 //Initialization of static variables of the class Game
-board Game::b = board();
+Board Game::b = Board();
 bool Game::sideFlag = BLACK_SIDE;
 
 //Implements of static Functions
-int Game::setPiece(piece p){
+int Game::setPiece(Piece p){
     return b.setPiece(p);
 }
 
-board Game::getBoard(){
+Board Game::getBoard(){
     return b;
 }
 
@@ -19,7 +19,10 @@ bool Game::getSideFlag(){
 
 int Game::switchSide(){
     sideFlag = !sideFlag;
-    b.refresh();
+    //b.refresh();
     return 0;
 }
 
+bool Game::canPlayerPlay(bool player){
+    return (getBoard().getValid(player) != 0);
+}
