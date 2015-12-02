@@ -1,6 +1,7 @@
 #include "base.h"
 #include "element.h"
 #include "game.h"
+#include <GL/freeglut.h>
 
 int dir[8][2] = {{0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1}};
 
@@ -9,7 +10,7 @@ string Pattern(Status s){
         case Black : return "●";
         case White : return "○";
         default :
-            return ((getValidTag(Game::getSideFlag()) & s) ? "✻" : " ");
+            return ((getValidTag(Game::getSideFlag()) & s)&&Game::PIECE_ASSISTANCE ? "✻" : " ");
     }
 }
 
@@ -88,28 +89,22 @@ bool Board::isValidCal(int x, int y, bool gameSide){
     return false;
 }
 
-unsigned long long Board::getBlackLong(){
-    unsigned long long temp = 0;
-    for (int i = 1; i <= size; ++i) {
-        for (int j = 1; j <= size; ++j) {
-            temp = (temp << 1) | ((pieces[i][j] >> 2) & 1);
+int Board::buildFromPair(pair<unsigned long long, unsigned long long> p){
+    unsigned long long b = p.first;
+    unsigned long long w = p.second;
+    for (int i = size; i >= 1; --i) {
+        for (int j = size; j >= 1; --j) {
+            pieces[i][j] = (Status) int(((b & 1) << 2) | ((w & 1) << 3));
+            b = b >> 1;
+            w = w >> 1;
         }
     }
-    return temp;
-}
-
-unsigned long long Board::getWhiteLong(){
-    unsigned long long temp = 0;
-    for (int i = 1; i <= size; ++i) {
-        for (int j = 1; j <= size; ++j) {
-            temp = (temp << 1) | ((pieces[i][j] >> 3) & 1);
-        }
-    }
-    return temp;
+    refreshValid();
+    return 0;
 }
 
 //Implements of puclic methods
-Piece::Piece(int _x, int _y, Status _status) {
+Piece::Piece(int _x, int _y, Status _status){
     x = _x;
     y = _y;
     status = _status;
@@ -132,25 +127,25 @@ Board::Board(){
     refresh();
 }
 
-Piece Board::getPiece(int x, int y) {
+Piece Board::getPiece(int x, int y){
     return Piece(x, y, pieces[x][y]);
 }
 
 //The member function returns 0 if it did set the piece
-int Board::setPiece(Piece p) {
-    if (!inRange(p.getX(), p.getY())) { printf("out!\n"); return 1; }
+int Board::setPiece(Piece p){
+    if (!inRange(p.getX(), p.getY())) { printf("out! %d %d\n", p.getX(), p.getY()); return 1; }
     if (!((pieces[p.getX()][p.getY()]&3) & getValidTag(Game::getSideFlag()))) { printf("not valid!\n"); return 2; }
     //First, let me record the board.
-    sequence.push_back(make_pair(getBlackLong(), getWhiteLong()));
-    //printf("%d %016llx %016llx\n", sequence.size(), sequence.back().first, sequence.back().second);
+    record();
     //Ok, you can place the piece.
     pieces[p.getX()][p.getY()] = p.getStatus();
     overturn(p);
     refresh();
+    glutPostRedisplay();
     return 0;
 }
 
-bool Board::isValid(int x, int y, bool gameSide) {
+bool Board::isValid(int x, int y, bool gameSide){
     //printf("now x(%d) y(%d) has Status %d.\n", x, y, pieces[x][y]);
     return (pieces[x][y] <= Valid) && (pieces[x][y] & getValidTag(gameSide));
 }
@@ -189,11 +184,45 @@ int Board::overturn(Piece p){
     return 0;
 }
 
-bool Board::full() {
+int Board::record(){
+    sequence.push_back(make_pair(getBlackLong(), getWhiteLong()));
+    //printf("%d %016llx %016llx\n", sequence.size(), sequence.back().first, sequence.back().second);
+    return 0;
+}
+
+int Board::undo(){
+    if (sequence.size() < 2) return -1;
+    sequence.pop_back();
+    buildFromPair(sequence.back());
+    sequence.pop_back();
+    return 0;
+}
+
+unsigned long long Board::getBlackLong(){
+    unsigned long long temp = 0;
+    for (int i = 1; i <= size; ++i) {
+        for (int j = 1; j <= size; ++j) {
+            temp = (temp << 1) | ((pieces[i][j] >> 2) & 1);
+        }
+    }
+    return temp;
+}
+
+unsigned long long Board::getWhiteLong(){
+    unsigned long long temp = 0;
+    for (int i = 1; i <= size; ++i) {
+        for (int j = 1; j <= size; ++j) {
+            temp = (temp << 1) | ((pieces[i][j] >> 3) & 1);
+        }
+    }
+    return temp;
+}
+
+bool Board::full(){
     return (blackcount + whitecount == size * size);
 }
 
-void Board::print() {
+void Board::print(){
     clear();
 
     printf("┌");

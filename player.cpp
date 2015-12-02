@@ -10,8 +10,8 @@ Player::Player(int _type, bool _side){
 }
 
 Piece Player::getPiece(){
-    if (type == PLAYER_HUMAN) return getPieceFromIO(side);
-    return ((AI)*this).getPiece();
+    //return getPieceFromConsole(side);
+    return getPieceFromMouse(side);
 }
 
 void Player::print(){

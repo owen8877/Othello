@@ -4,6 +4,12 @@
 #include "base.h"
 #include "element.h"
 
-Piece getPieceFromIO(bool side);
+Piece getPieceFromConsole(bool side);
+
+int menu();
+int settings();
+int save();
+void mouseKey(int button, int state, int x, int y);
+Piece getPieceFromMouse(bool side);
 
 #endif // IO_H

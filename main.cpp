@@ -2,19 +2,26 @@
 #include "element.h"
 #include "game.h"
 #include "ai.h"
+#include "io.h"
+#include "display.h"
+#include <thread>
 
 using namespace std;
 
+thread display_t, game;
+
 void Othello_game(int player1, int player2);
-int Othello_main();
+int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
-    while (Othello_main());
+    display_t = thread(displayThread, argc, argv);
+    while (Othello_main(argc, argv));
     return 0;
 }
 
-int Othello_main(){
+int Othello_main(int argc, char **argv){
     clear();
+    Game::reset();
     printf("Othello by xDroid\n");
     printf("\n");
     printf(" 1.Play with Friends\n");
@@ -28,7 +35,8 @@ int Othello_main(){
     fflush(stdin);
     switch (select) {
         case 1 :
-            Othello_game(PLAYER_HUMAN, PLAYER_HUMAN);
+            game = thread(Othello_game, PLAYER_HUMAN, PLAYER_HUMAN);
+            game.join();
             break;
         case 2 :
             clear();
@@ -39,17 +47,19 @@ int Othello_main(){
             switch (ch) {
                 case 'b' :
                 case 'B' :
-                    Othello_game(PLAYER_HUMAN, PLAYER_AI);
+                    game = thread(Othello_game, PLAYER_HUMAN, PLAYER_AI);
+                    game.join();
                     break;
                 case 'w' :
                 case 'W' :
-                    Othello_game(PLAYER_AI, PLAYER_HUMAN);
+                    game = thread(Othello_game, PLAYER_AI, PLAYER_HUMAN);
+                    game.join();
                     break;
                 default : ;
             }
             break;
         case 3 :
-            printf("Sorry, it's under construction.\n");
+            settings();
             break;
         case -1 :
             return 0;
@@ -60,20 +70,23 @@ int Othello_main(){
 
 void Othello_game(int player1, int player2){
     Player player[2] = {(player1 == PLAYER_AI) ? AI(BLACK_SIDE) : Player(player1, BLACK_SIDE), (player2 == PLAYER_AI) ? AI(WHITE_SIDE) : Player(player2, WHITE_SIDE)};
-    int current = 0;
 
     while (!Game::getBoard().full()) {
         Game::getBoard().print();
         printf("The side is : %s\n", Game::getSideFlag() ? "Black" : "White");
         if (Game::canPlayerPlay(Game::getSideFlag())) {
-            if (player[current].getType()==PLAYER_AI) while (Game::setPiece(((AI)player[current]).getPiece()));
-            else while (Game::setPiece(player[current].getPiece()));
+            if (player[Game::playerIsWho()].getType()==PLAYER_AI) while (Game::setPiece(((AI)player[Game::playerIsWho()]).getPiece()));
+            else while (Game::setPiece(player[Game::playerIsWho()].getPiece()));
+        }
+        else if (Game::neitherCanPlay()) {
+            printf("Both sides cannot place their piece.\n");
+            break;
         }
         else {
             printf("You have no place to toss your piece!\n");
+            Game::jump();
         }
         Game::switchSide();
-        current = 1 - current;
     }
 
     if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
