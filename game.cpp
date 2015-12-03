@@ -61,6 +61,7 @@ int Game::jump(){
 int Game::reset(){
     b = Board();
     sideFlag = BLACK_SIDE;
+    return 0;
 }
 
 bool Game::canPlayerPlay(bool player){
@@ -68,5 +69,5 @@ bool Game::canPlayerPlay(bool player){
 }
 
 bool Game::neitherCanPlay(){
-    return (getBoard().getValid(BLACK_SIDE) == 0) && (getBoard().getValid(WHITE_SIDE)) == 0);
+    return ((getBoard().getValid(BLACK_SIDE) == 0) && (getBoard().getValid(WHITE_SIDE)) == 0);
 }

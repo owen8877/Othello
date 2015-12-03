@@ -6,11 +6,13 @@
 #include <fstream>
 #include <GL/freeglut.h>
 
-extern int screenSize;
+extern int screenSize, screenHeight, screenWidth;
+extern double theta, fai;
 
 int mouseMove = 0;
 short xBuffer[10], yBuffer[10];
 bool canMouseInput = false;
+int mouseButton = 0;
 
 Piece getPieceFromConsole(bool side){
     printf("Please input your piece :\n");
@@ -75,16 +77,69 @@ int save(){
     return 0;
 }
 
+void renewMouseStat(double x, double y, int button){
+    static int button_old = 0;
+    static double x_old = 0, y_old = 0;
+    if (LEFT_MOUSE_BUTTON & button & button_old) {
+        theta -= 100 * (x - x_old);
+        fai += 100 * (y - y_old);
+        if (fai > 180.0) fai = 180.0;
+        if (fai < 0.0) fai = 0.0;
+        printf("renewMouseStat : theta %lf, fai %lf\n", theta, fai);
+    }
+    button_old = button;
+    x_old = x; y_old = y;
+    glutPostRedisplay();
+}
+
 // Mouse Callback
 void mouseKey(int button, int state, int x, int y){
-    if (!canMouseInput) return;
-    if (state != GLUT_DOWN) return;
-    cout << screenSize << endl;
-    yBuffer[mouseMove] = (x / (screenSize / BOARD_SIZE)) + 1;
-    xBuffer[mouseMove] = (y / (screenSize / BOARD_SIZE)) + 1;
-    mouseMove++;
-    canMouseInput = false;
+    //if (!canMouseInput) return;
+    if (GLUT_DOWN == state) switch (button) {
+        case GLUT_LEFT_BUTTON:
+            mouseButton |= LEFT_MOUSE_BUTTON;
+            break;
+        case GLUT_MIDDLE_BUTTON:
+            mouseButton |= MIDDLE_MOUSE_BUTTON;
+            break;
+        case GLUT_RIGHT_BUTTON:
+            mouseButton |= RIGHT_MOUSE_BUTTON;
+            break;
+    }
+    else switch (button) {
+        case GLUT_LEFT_BUTTON:
+            mouseButton &= ~LEFT_MOUSE_BUTTON;
+            break;
+        case GLUT_MIDDLE_BUTTON:
+            mouseButton &= ~MIDDLE_MOUSE_BUTTON;
+            break;
+        case GLUT_RIGHT_BUTTON:
+            mouseButton &= ~RIGHT_MOUSE_BUTTON;
+            break;
+    }
+    switch (mouseButton) {
+        case LEFT_MOUSE_BUTTON : printf("mousekey() : Left Mouse!\n"); break;
+        case MIDDLE_MOUSE_BUTTON : printf("mousekey() : Middle Mouse!\n"); break;
+        case RIGHT_MOUSE_BUTTON : printf("mousekey() : Right Mouse!\n"); break;
+    }
+    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
+                (double) (screenHeight/2.0 - y)/screenSize,
+                mouseButton);
+    //if (state != GLUT_DOWN) return;
+    //cout << screenSize << endl;
+    //yBuffer[mouseMove] = (x / (screenSize / BOARD_SIZE)) + 1;
+    //xBuffer[mouseMove] = (y / (screenSize / BOARD_SIZE)) + 1;
+    //mouseMove++;
+    //canMouseInput = false;
     return;
+}
+
+//Mouse Passive Callback
+void mouseMotion(int x, int y){
+    printf("mouseMotion : %d, %d\n", x, y);
+    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
+                (double) (screenHeight/2.0 - y)/screenSize,
+                mouseButton);
 }
 
 //For Mouse Input

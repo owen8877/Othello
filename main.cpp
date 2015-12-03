@@ -15,7 +15,8 @@ int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
     display_t = thread(displayThread, argc, argv);
-    while (Othello_main(argc, argv));
+    display_t.join();
+    //while (Othello_main(argc, argv));
     return 0;
 }
 
