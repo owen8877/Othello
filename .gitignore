@@ -4,3 +4,5 @@ bin/
 Othello.layout
 Othello.depend
 20151202155526
+math3d.h
+math3d.cpp

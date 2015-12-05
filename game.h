@@ -8,6 +8,7 @@ class Game{
 private:
     static Board b;
     static bool sideFlag;
+    static bool isPlaying;
 
     static int undo();
 
@@ -22,7 +23,10 @@ public:
     static int jump();
     static int reset();
     static bool canPlayerPlay(bool player);
-    static bool neitherCanPlay();
+    static bool eitherCanPlay();
+    static bool areTheyPlaying();
+    static bool canContinue();
+    static bool liftTheTable();
 };
 
 #endif // GAME_H

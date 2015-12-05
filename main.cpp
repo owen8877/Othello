@@ -15,8 +15,8 @@ int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
     display_t = thread(displayThread, argc, argv);
-    display_t.join();
-    //while (Othello_main(argc, argv));
+    //display_t.join();
+    while (Othello_main(argc, argv));
     return 0;
 }
 
@@ -72,16 +72,12 @@ int Othello_main(int argc, char **argv){
 void Othello_game(int player1, int player2){
     Player player[2] = {(player1 == PLAYER_AI) ? AI(BLACK_SIDE) : Player(player1, BLACK_SIDE), (player2 == PLAYER_AI) ? AI(WHITE_SIDE) : Player(player2, WHITE_SIDE)};
 
-    while (!Game::getBoard().full()) {
+    while (Game::canContinue()) {
         Game::getBoard().print();
         printf("The side is : %s\n", Game::getSideFlag() ? "Black" : "White");
         if (Game::canPlayerPlay(Game::getSideFlag())) {
             if (player[Game::playerIsWho()].getType()==PLAYER_AI) while (Game::setPiece(((AI)player[Game::playerIsWho()]).getPiece()));
             else while (Game::setPiece(player[Game::playerIsWho()].getPiece()));
-        }
-        else if (Game::neitherCanPlay()) {
-            printf("Both sides cannot place their piece.\n");
-            break;
         }
         else {
             printf("You have no place to toss your piece!\n");

@@ -26,12 +26,9 @@ public:
     double getAxisy() { return axisy; }
     double getAxisz() { return axisz; }
 
+    void fly();
     void move(double dt);
     void print();
 };
-
-extern vector<Stone> stones;
-extern void initModel();
-extern void timerCallback(int index);
 
 #endif // MODEL_H

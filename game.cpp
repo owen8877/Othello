@@ -1,10 +1,12 @@
 #include "game.h"
 #include "io.h"
+#include "model.h"
 
 //Initialization of static variables of the class Game
 Board Game::b = Board();
 bool Game::sideFlag = BLACK_SIDE;
 bool Game::PIECE_ASSISTANCE = true;
+bool Game::isPlaying = PLAYING;
 
 //Implements of static private Functions
 int Game::undo(){
@@ -61,6 +63,7 @@ int Game::jump(){
 int Game::reset(){
     b = Board();
     sideFlag = BLACK_SIDE;
+    isPlaying = PLAYING;
     return 0;
 }
 
@@ -68,6 +71,22 @@ bool Game::canPlayerPlay(bool player){
     return (getBoard().getValid(player) != 0);
 }
 
-bool Game::neitherCanPlay(){
-    return ((getBoard().getValid(BLACK_SIDE) == 0) && (getBoard().getValid(WHITE_SIDE)) == 0);
+bool Game::eitherCanPlay(){
+    return ((getBoard().getValid(BLACK_SIDE) != 0) || (getBoard().getValid(WHITE_SIDE)) != 0);
+}
+
+bool Game::areTheyPlaying(){
+    return isPlaying;
+}
+
+bool Game::canContinue(){
+    if (!eitherCanPlay()) printf("Both sides cannot toss their pieces!\n");
+    printf("%d %d %d\n", eitherCanPlay(), isPlaying, eitherCanPlay() && (isPlaying == PLAYING));
+    return eitherCanPlay() && (isPlaying == PLAYING);
+}
+
+bool Game::liftTheTable(){
+    if (isPlaying == LIFTING) return false;
+    isPlaying = LIFTING;
+    return true;
 }
