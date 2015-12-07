@@ -11,24 +11,29 @@
 #include "math3d.h"
 
 int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 80 * BOARD_SIZE;
-double zoom = 11;
+double zoom = DEFAULT_ZOOM;
 double theta = -90.5, fai = 20.0;
-double chosenx = 0.0, choseny = 0.0;
+double floatingx = 0.0, floatingy = 0.0;
 GLfloat light_0_position [] = {0.0, 0.0, 40.0, 1.0};
 GLfloat light_0_dir [] = {0.0, 0.0, -1.0};
+float backGroundColor = 0.104;
+float fogDensity = 0.00f;
+bool isFocus = false;
+GLfloat fogColorPause [] = {backGroundColor, backGroundColor, backGroundColor, 1.0f};
+GLfloat fogColorFocus [] = {0.1f, 0.15f, 0.2f, 0.0f};
+
 
 extern double xcenter, ycenter, zcenter;
 extern vector<Stone> stones;
-extern void initModel();
+extern void refreshModel(bool lifting);
 extern void timerCallback(int index);
 extern void keyboardCallback(unsigned char key, int _x, int _y);
 extern void keyboardUpCallback(unsigned char key, int _x, int _y);
+extern void skeyboardCallback(int key, int _x, int _y);
+extern void skeyboardUpCallback(int key, int _x, int _y);
 
 inline void setVertexColor(double x, double y) {
-    //((x <= FLOOR_SHADE_SIZE)&&(x >= -FLOOR_SHADE_SIZE)&&(y <= FLOOR_SHADE_SIZE)&&(y >= -FLOOR_SHADE_SIZE)) ? glColor3d(0.0, 0.0, 0.0) : glColor3d(1.0, 1.0, 1.0);
     double p = pow(((pow(x, 8) + pow(y, 8)) / 2.0), 0.125) / FLOOR_SHADE_SIZE;
-    //double temp = -(p-1.1) * (p-2.05) * 2.5 + 0.17;
-    //double temp = (p < 1.834) ? (-(p-1.1) * (p-2.05) * 2.5 + 0.17) : (0.56636 + (p - 1.834) * 5);
     double temp = (p < 2) ? (-(p-2)*(p-2) + 1) : 1.0;
     glColor3d(temp, temp, temp);
 }
@@ -59,6 +64,22 @@ void initDisplay(){
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 }
 
+void Fog(){
+    if (Game::getGameStatus() == Pause) {
+        glEnable(GL_FOG);
+        glFogi(GL_FOG_MODE, GL_EXP2);
+        glFogf(GL_FOG_DENSITY, 0.15f);
+        glFogfv(GL_FOG_COLOR, fogColorPause);
+    }
+    else if (Game::getGameStatus() == Lifting) {
+        glEnable(GL_FOG);
+        glFogi(GL_FOG_MODE, GL_EXP);
+        glFogf(GL_FOG_DENSITY, fogDensity);
+        glFogfv(GL_FOG_COLOR, fogColorFocus);
+    }
+    else glDisable(GL_FOG);
+}
+
 void Lights(){
     GLfloat light_1_position [] = {1.0, 0.0, 0.0, 0.0};
     GLfloat light_2_position [] = {0.0, 1.0, 0.0, 0.0};
@@ -69,7 +90,7 @@ void Lights(){
     GLfloat ambientLight [] = {0.3f, 0.3f, 0.3f, 1.0f};
     GLfloat diffuseLight [] = {0.7f, 0.7f, 0.7f, 1.0f};
     GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat globalAmbient [] = {0.1, 0.1, 0.1, 1.0};
+    GLfloat globalAmbient [] = {0.3, 0.3, 0.3, 1.0};
 
     glLightfv(GL_LIGHT1, GL_POSITION, light_1_position);
     glLightfv(GL_LIGHT1, GL_AMBIENT, ambientLight);
@@ -105,87 +126,29 @@ void Lights(){
     glEnable(GL_LIGHT0);
 }
 
-void drawCircle(double x, double y, double r, Status s){
-    switch (s) {
-        case Black:
-            glColor3d(0.0, 0.0, 0.0);
-            break;
-        case White:
-            glColor3d(1.0, 1.0, 1.0);
-            break;
-        default : ;
-    }
-    glBegin(GL_POLYGON);
-    for (int i = 0; i < CIRCLE_MAX; ++i)
-        glVertex2d(x + r*cos(2 * M_PI*i / CIRCLE_MAX), y + r*sin(2 * M_PI*i / CIRCLE_MAX));
-    glEnd();
-}
-
-void drawHint(double x, double y, double r){
-    glColor3d(1.0, 0.0, 0.0);
-    glBegin(GL_LINES);
-    for (int i = 0; i < 2; ++i) {
-        glVertex2d(x + r*cos(i*M_PI / 2), y + r*sin(i*M_PI / 2));
-        glVertex2d(x + r*cos(i*M_PI / 2 + M_PI), y + r*sin(i*M_PI / 2 + M_PI));
-    }
-    glEnd();
-}
-
-void drawBoard(){
-    //Draw background
-    glClearColor(0.54f, 0.14f, 0.0f, 0.8f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3d(0.0, 0.0, 0.0);
-    glLineWidth(3);
-    glBegin(GL_LINES);
-    for (int i = 1; i < BOARD_SIZE; ++i) {
-        glVertex2d(-1.0, i * step - 1.0);
-        glVertex2d(1.0, i * step - 1.0);
-    }
-    for (int i = 1; i < BOARD_SIZE; ++i) {
-        glVertex2d(i * step - 1.0, -1.0);
-        glVertex2d(i * step - 1.0, 1.0);
-    }
-    glEnd();
-}
-
-void drawPiece(){
-    for (int i = 1; i <= BOARD_SIZE; ++i) {
-        for (int j = 1; j <= BOARD_SIZE; ++j) {
-            double x = -1 - hstep + step*j;
-            double y = 1 + hstep - step*i;
-            //printf("i %d, j %d, x %lf, y %lf\n", i, j, x, y);
-            switch (Game::getBoard().getPiece(i,j).getStatus()) {
-                case Black :
-                    drawCircle(x, y, 0.85 / BOARD_SIZE, Black);
-                    break;
-                case White :
-                    drawCircle(x, y, 0.85 / BOARD_SIZE, White);
-                    break;
-                case Empty :
-                    break;
-                case BlackValid :
-                    if ((getValidTag(Game::getSideFlag()) & BlackValid) && Game::PIECE_ASSISTANCE) drawHint(x, y, 0.75 / BOARD_SIZE);
-                    break;
-                case WhiteValid :
-                    if ((getValidTag(Game::getSideFlag()) & WhiteValid) && Game::PIECE_ASSISTANCE) drawHint(x, y, 0.75 / BOARD_SIZE);
-                    break;
-                case Valid :
-                    if ((getValidTag(Game::getSideFlag()) & Valid) && Game::PIECE_ASSISTANCE) drawHint(x, y, 0.75 / BOARD_SIZE);
-                    break;
-                default : ;
-            }
-        }
-    }
-}
-
 void drawStone(){
     glMatrixMode(GL_MODELVIEW);
-    int i = 0;
     for (auto stone : stones) {
-        if ((stone.getColor() != Black) && (stone.getColor() != White)) continue;
         glPushMatrix();
         glTranslated(stone.getX(), stone.getY(), stone.getZ());
+        if (Game::getGameStatus() == Idle) break;
+        else if (Game::getGameStatus() != Lifting) {
+            if ((stone.getColor() != Black) && (stone.getColor() != White)) {
+                if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
+                    glTranslated(0.0, 0.0, 0.0001);
+                    if (Game::getSideFlag() == BLACK_SIDE) glColor3d(0.2, 0.2, 0.2);
+                    if (Game::getSideFlag() == WHITE_SIDE) glColor3d(0.8, 0.8, 0.8);
+                    glBegin(GL_QUADS);
+                        glVertex3d(-STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
+                        glVertex3d(-STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
+                        glVertex3d(STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
+                        glVertex3d(STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
+                    glEnd();
+                }
+                glPopMatrix();
+                continue;
+            }
+        }
         glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
         glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
         glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
@@ -205,6 +168,7 @@ void drawStone(){
 }
 
 void drawBackGround(){
+    /*
     glDisable(GL_LIGHTING);
     glLineWidth(2);
     glBegin(GL_LINES);
@@ -220,6 +184,7 @@ void drawBackGround(){
         glVertex3d(0.0, 0.0, 0.0);
         glVertex3d(0.0, 0.0, 1000.0);
     glEnd();
+    */
 
     glEnable(GL_LIGHTING);
     glBegin(GL_QUAD_STRIP);
@@ -265,19 +230,26 @@ void drawBackGround(){
 }
 
 void drawCursor(){
+    if (Game::getGameStatus() != Playing) return;
+
     glEnable(GL_LIGHTING);
     glTranslated(0.0, 0.0, 0.01);
 
-    double alignx = int(chosenx * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
-    double aligny = int(choseny * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
+
+    double alignx = int(floatingx * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
+    double aligny = int(floatingy * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
     double tiny = 1.0 / BOARD_SIZE;
-    if (alignx < -0.5) alignx = -0.5;
-    if (aligny < -0.5) aligny = -0.5;
-    if (alignx > 0.5 - 1.0 / BOARD_SIZE) alignx = 0.5 - 1.0 / BOARD_SIZE;
-    if (aligny > 0.5 - 1.0 / BOARD_SIZE) aligny = 0.5 - 1.0 / BOARD_SIZE;
-    printf("alignx : %lf, aligny : %lf\n", alignx, aligny);
+    //if (alignx < -0.5) alignx = -0.5;
+    //if (aligny < -0.5) aligny = -0.5;
+    //if (alignx > 0.5 - 1.0 / BOARD_SIZE) alignx = 0.5 - 1.0 / BOARD_SIZE;
+    //if (aligny > 0.5 - 1.0 / BOARD_SIZE) aligny = 0.5 - 1.0 / BOARD_SIZE;
+
+    if (alignx < -0.5) return;
+    if (aligny < -0.5) return;
+    if (alignx > 0.5 - 1.0 / BOARD_SIZE) return;
+    if (aligny > 0.5 - 1.0 / BOARD_SIZE) return;
     glBegin(GL_QUAD_STRIP);
-        glColor3d(1.0, 0.0, 0.0);
+        glColor4d(0.0, 1.0, 1.0, 0.7);
         glVertex3d(alignx, aligny, 0.0);
         glVertex3d(alignx+tiny, aligny, 0.0);
         glVertex3d(alignx, aligny+tiny, 0.0);
@@ -317,20 +289,14 @@ void drawTable(){
 }
 
 void display(){
-    double backGroundColor = 0.104;
     glClearColor(backGroundColor, backGroundColor, backGroundColor, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
 
-    gluPerspective(90.0, 1, 0.5, 1000);
-    //glOrtho(-(GLfloat)screenWidth / screenSize, (GLfloat)screenWidth / screenSize,
-    //    -(GLfloat)screenHeight / screenSize, (GLfloat)screenHeight / screenSize,
-    //    -1.0f, 10.0f);
+    Fog();
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    if (Game::areTheyPlaying() == LIFTING) gluLookAt(zoom * cos(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI) + xcenter,
+    if (Game::getGameStatus() == Lifting) gluLookAt(zoom * cos(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI) + xcenter,
         zoom * sin(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI) + ycenter,
         zoom * cos(fai / 180.0 * M_PI) + zcenter,
         xcenter, ycenter, zcenter,
@@ -344,7 +310,34 @@ void display(){
     drawBackGround();
     drawTable();
     drawStone();
+    if (Game::getGameStatus() == Pause) {
+        glDisable(GL_DEPTH_TEST);
+        //glDisable(GL_LIGHTING);
+        glMatrixMode(GL_PROJECTION);
+        glPushMatrix();
+            glLoadIdentity();
+            gluOrtho2D(-1.0, 1.0, -1.0, 1.0);
 
+            glMatrixMode(GL_MODELVIEW);
+            glPushMatrix();
+                glLoadIdentity();
+                glColor4d(0.8, 0.8, 1.0, 0.2);
+                /*
+                glBegin(GL_QUADS);
+                    glVertex2d(0.0, 0.0);
+                    glVertex2d((GLdouble)screenWidth, 0.0);
+                    glVertex2d((GLdouble)screenWidth, (GLdouble)screenHeight);
+                    glVertex2d(0.0, (GLdouble)screenHeight);
+                glEnd();
+                */
+                //glRectd(-1.0, -1.0, 1.0, 1.0);
+            glPopMatrix();
+
+        glMatrixMode(GL_PROJECTION);
+        glPopMatrix();
+        //glEnable(GL_LIGHTING);
+        glEnable(GL_DEPTH_TEST);
+    }
     glutSwapBuffers();
 }
 
@@ -353,41 +346,34 @@ void reshape(int width, int height){
     screenWidth = width;
     screenHeight = height;
     glViewport(0, 0, width, height);
-    glMatrixMode (GL_PROJECTION);
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-(GLfloat)screenWidth / screenSize, (GLfloat)screenWidth / screenSize,
+    glFrustum(-(GLfloat)screenWidth / screenSize, (GLfloat)screenWidth / screenSize,
         -(GLfloat)screenHeight / screenSize, (GLfloat)screenHeight / screenSize,
-        -1.0f, 1.0f);
-    glMatrixMode(GL_MODELVIEW);
+        1.0f, 1000.0f);
 
     glClear(GL_COLOR_BUFFER_BIT);
-    //glutPostRedisplay();
-
-
-    //glLoadIdentity ();
-    //gluPerspective(60.0, (GLfloat) width/(GLfloat) height, 1.0, 20.0);
-    //glMatrixMode(GL_MODELVIEW);
-    //glLoadIdentity();
-    //gluLookAt (0.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     glutPostRedisplay();
 }
 
 void displayThread(int argc, char **argv){
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-    glutInitWindowPosition(100, 100);
+    glutInitWindowPosition(50, 50);
     glutInitWindowSize(screenSize, screenSize);
     glutCreateWindow("Othello");
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS);
     glutDisplayFunc(&display);
     glutMouseFunc(&mouseKey);
     glutMotionFunc(&mouseMotion);
+    glutPassiveMotionFunc(&mouseMotion);
     glutReshapeFunc(&reshape);
     glutKeyboardFunc(&keyboardCallback);
+    glutSpecialFunc(&skeyboardCallback);
     glutKeyboardUpFunc(&keyboardUpCallback);
+    glutSpecialUpFunc(&skeyboardUpCallback);
     initDisplay();
-    initModel();
+    refreshModel(false);
     glutTimerFunc(0, &timerCallback, 0);
-    printf("%d\n", FLOOR_CENTER_SIZE);
     glutMainLoop();
 }

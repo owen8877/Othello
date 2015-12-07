@@ -2,9 +2,10 @@
 #define ELEMENT_H
 
 #include "base.h"
+#include <fstream>
 #include <vector>
 
-enum Status {Empty, BlackValid, WhiteValid, Valid, Black, Undo, Menu, Settings, White=8, Save, Reserved_10, Reserved_11, Reserved_12, Reserved_13, Reserved_14, Reserved_15};
+enum Status {Empty, BlackValid, WhiteValid, Valid, Black, Undo, Menu, Settings, White=8, Save, Idle, Playing, Lifting, End, Pause, Recovery};
 
 using namespace std;
 
@@ -62,6 +63,8 @@ public:
 
     bool full();
     void print();
+
+    int recovery();
 };
 
 Status getValidTag(bool side);

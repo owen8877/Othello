@@ -8,11 +8,17 @@
 
 using namespace std;
 
+extern bool isFocus;
+extern GLfloat fogColorFocus [];
+extern float fogDensity;
+extern double theta, fai;
+
 vector<Stone> stones;
 double lightDirAngle = 0;
 double xcenter = 0.0, ycenter = 0.0, zcenter = 0.0;
 clock_t starttime;
-int kbstat[256] = {0};
+int liftingTableTime = 0;
+int emulateTimes = 5;
 
 inline double exponent_coeffiency(double z){
     if (abs(z - STONE_RADIUS) < 0.1) return (1.0 - 100 * (z - STONE_RADIUS) * (z - STONE_RADIUS));
@@ -74,13 +80,17 @@ void Stone::print(){
         x, y, z, vx, vy, vz, axisx, axisy, axisz, (color == Black) ? "Black" : "White");
 }
 
-void initModel(){
+void refreshModel(bool lifting){
     Board b = Game::getBoard();
     stones.clear();
     for (int i = 1; i <= BOARD_SIZE; ++i) {
         for (int j = 1; j <= BOARD_SIZE; ++j) {
             if ((b.getPiece(i,j).getStatus()==Black) || (b.getPiece(i,j).getStatus()==White)) stones.push_back(Stone(b.getPiece(i, j)));
-            //stones.back().print();
+            if (!lifting) {
+                if ((b.getPiece(i,j).getStatus() == Valid)
+                    || (b.getPiece(i,j).getStatus() == BlackValid)
+                    || (b.getPiece(i,j).getStatus() == WhiteValid)) stones.push_back(Stone(b.getPiece(i, j)));
+            }
         }
     }
 }
@@ -88,28 +98,65 @@ void initModel(){
 // Timer Callback
 void timerCallback(int index){
     switch (index) {
-        case 0:
-            if (Game::areTheyPlaying() == PLAYING) {
-                glutTimerFunc(33, &timerCallback, 0);
-                initModel();
+        case 0: //Idle
+            theta = -90.5f;
+            fai = 20.0f;
+            if (Game::getGameStatus() != Playing) {
+                glutTimerFunc(1000 / FPS, &timerCallback, 0);
             }
-            else glutTimerFunc(33, &timerCallback, 1);
+            else glutTimerFunc(1000 / FPS, &timerCallback, 1);
             break;
-        case 1:
-            glutTimerFunc(33, &timerCallback, 2);
-            glDisable(GL_LIGHT0);
+        case 1: //Playing
+            glutSetCursor(GLUT_CURSOR_NONE);
+            refreshModel(false);
+            if (Game::getGameStatus() == Playing) {
+                glutTimerFunc(1000 / FPS, &timerCallback, 1);
+            }
+            else if (Game::getGameStatus() == Pause) glutTimerFunc(1000 / FPS, &timerCallback, 2);
+            else if (Game::getGameStatus() == Lifting) glutTimerFunc(1000 / FPS, &timerCallback, 3);
+            else glutTimerFunc(1000 / FPS, &timerCallback, 0);
+            break;
+        case 2: //Pausing...
+            glutSetCursor(GLUT_CURSOR_INHERIT);
+            if (Game::getGameStatus() == Playing) {
+                glutTimerFunc(1000 / FPS, &timerCallback, 1);
+            }
+            else if (Game::getGameStatus() == Pause) glutTimerFunc(1000 / FPS, &timerCallback, 2);
+            else glutTimerFunc(1000 / FPS, &timerCallback, 0);
+            break;
+        case 3: //Preparing to lift
+            glutSetCursor(GLUT_CURSOR_INHERIT);
+            glutTimerFunc(1000 / FPS, &timerCallback, 4);
+            refreshModel(true);
             for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it)
                 (*it).fly();
             break;
-        case 2:
-            glutTimerFunc(33, &timerCallback, 2);
-            glEnable(GL_LIGHT0);
+        case 4: //Lifting
+            if (Game::getGameStatus() == Lifting) {
+                glutTimerFunc(1000 / FPS, &timerCallback, 4);
+            }
+            else  {
+                glutTimerFunc(1000 / FPS, &timerCallback, 0);
+                return;
+            }
             starttime = clock();
-            double x = 0.0, y = 0.0, z = 0.0;
-            for (int i = 0; i < 10; ++i)
+
+            if (isFocus) {
+                //fogColorFocus[3] = fogColorFocus[3] * 0.9 + 1.0 * 0.1;
+                fogDensity = fogDensity * 0.9 + 0.05 * 0.1;
+                emulateTimes = emulateTimes * 0.9 + 5 * 0.1;
+            }
+            else {
+                //fogColorFocus[3] = fogColorFocus[3] * 0.9;
+                fogDensity = fogDensity * 0.9;
+                emulateTimes = emulateTimes * 0.9 + 30 * 0.1;
+            }
+
+            for (int i = 0; i < emulateTimes; ++i)
                 for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it)
                     (*it).move(TIME_UNIT);
 
+            double x = 0.0, y = 0.0, z = 0.0;
             for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it) {
                 x += (*it).getX();
                 y += (*it).getY();
@@ -119,28 +166,17 @@ void timerCallback(int index){
             ycenter = y / stones.size() * lambda + ycenter * (1 - lambda);
             zcenter = z / stones.size() * lambda + zcenter * (1 - lambda);
 
-            printf("timefunc update complete using %.6lf s\n", (0.0 + clock() - starttime) / CLOCKS_PER_SEC);
+            //printf("timefunc update complete using %.1lf μs\n", (0.0 + clock() - starttime) / CLOCKS_PER_SEC * 1e6);
 
-            glutPostRedisplay();
+            liftingTableTime += emulateTimes;
+            if (liftingTableTime >= 250 * FPS) fogDensity = fogDensity * 0.995 + 10 * 0.005;
+            if (liftingTableTime >= 300 * FPS) {
+                Game::endGame();
+                liftingTableTime = 0;
+                fogDensity = 0.05f;
+                //stones.clear();
+            }
             break;
     }
-}
-
-// Keyboard Callback
-void keyboardCallback(unsigned char key, int _x, int _y){
-    switch (key) {
-        case '\x0D' :
-        case '\x1B' :
-            glutLeaveMainLoop();
-            break;
-        case 'l' :
-            Game::liftTheTable();
-            printf("lifting...\n");
-            break;
-    }
-    kbstat[key] = 1;
-}
-
-void keyboardUpCallback(unsigned char key, int x, int y){
-    kbstat[key] = 0;
+    glutPostRedisplay();
 }

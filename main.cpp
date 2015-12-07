@@ -8,6 +8,8 @@
 
 using namespace std;
 
+extern void refreshModel(bool lifting);
+
 thread display_t, game;
 
 void Othello_game(int player1, int player2);
@@ -71,7 +73,7 @@ int Othello_main(int argc, char **argv){
 
 void Othello_game(int player1, int player2){
     Player player[2] = {(player1 == PLAYER_AI) ? AI(BLACK_SIDE) : Player(player1, BLACK_SIDE), (player2 == PLAYER_AI) ? AI(WHITE_SIDE) : Player(player2, WHITE_SIDE)};
-
+    Game::gameStart();
     while (Game::canContinue()) {
         Game::getBoard().print();
         printf("The side is : %s\n", Game::getSideFlag() ? "Black" : "White");
@@ -89,4 +91,6 @@ void Othello_game(int player1, int player2){
     if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
     else if (Game::getBoard().getBlackcount() < Game::getBoard().getWhitecount()) printf("White Wins!!!\n");
     else printf("Tie!!!\n");
+
+    //while (Game::getGameStatus() != End) msleep(100)
 }

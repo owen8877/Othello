@@ -133,15 +133,17 @@ Piece Board::getPiece(int x, int y){
 
 //The member function returns 0 if it did set the piece
 int Board::setPiece(Piece p){
-    if (!inRange(p.getX(), p.getY())) { printf("out! %d %d\n", p.getX(), p.getY()); return 1; }
-    if (!((pieces[p.getX()][p.getY()]&3) & getValidTag(Game::getSideFlag()))) { printf("not valid!\n"); return 2; }
+    if (!inRange(p.getX(), p.getY())) { //printf("out! %d %d\n", p.getX(), p.getY());
+    return 1; }
+    if (!((pieces[p.getX()][p.getY()]&3) & getValidTag(Game::getSideFlag()))) { //printf("not valid!\n");
+    return 2; }
     //First, let me record the board.
     record();
     //Ok, you can place the piece.
     pieces[p.getX()][p.getY()] = p.getStatus();
     overturn(p);
     refresh();
-    glutPostRedisplay();
+    //glutPostRedisplay();
     return 0;
 }
 
@@ -253,4 +255,22 @@ void Board::print(){
     printf("┘\n");
     printf("\tBlack count : %d\n\tWhite count : %d\n", blackcount, whitecount);
     printf("\tBlack valid : %d\n\tWhite valid : %d\n", blackvalid, whitevalid);
+}
+
+int Board::recovery(){
+    char buffer[] = "Save";
+    string fileName(buffer);
+    ifstream input(fileName.c_str());
+    int lines;
+    long long b, w;
+    input >> lines;
+    sequence.clear();
+    for (int i = 0; i < lines; ++i){
+        input >> b >> w;
+        sequence.push_back(make_pair(b, w));
+    }
+    input >> b >> w;
+    buildFromPair(make_pair(b, w));
+    refresh();
+    return (lines % 2) + 1;
 }

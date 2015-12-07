@@ -9,6 +9,7 @@ Piece getPieceFromConsole(bool side);
 int menu();
 int settings();
 int save();
+int readrecord();
 void mouseKey(int button, int state, int x, int y);
 void mouseMotion(int x, int y);
 Piece getPieceFromMouse(bool side);

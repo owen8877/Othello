@@ -4,13 +4,12 @@
 #define BLACK_SIDE true
 #define WHITE_SIDE false
 
-#define PLAYING true
-#define LIFTING false
-
 #define BOARD_SIZE 8
 
 #define GRAVITY 500
-#define DEFAULT_ZOOM 15
+#define DEFAULT_ZOOM 11
+#define MAX_ZOOM 20
+#define MIN_ZOOM 7
 #define lambda 0.2
 #define RESTITUTION 0.8
 #define STONE_INTERVAL 1.0
@@ -49,7 +48,7 @@
 using namespace std;
 
 inline void clear() { system("clear"); }
-//inline void pause() { system("read"); }
-inline void sleep(int millsec) { usleep(1000*millsec); }
+inline void mypause() { system("read"); }
+inline void msleep(int millsec) { usleep(1000*millsec); }
 
 #endif // BASE_H

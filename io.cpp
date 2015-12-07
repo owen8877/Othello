@@ -10,12 +10,15 @@
 extern int screenSize, screenHeight, screenWidth;
 extern double theta, fai;
 extern double zoom;
-extern double chosenx, choseny;
+extern double floatingx, floatingy;
+extern bool isFocus;
 
 bool hasMouseInput = false;
 bool canMouseInput = false;
+bool undo = false;
 short xBuffer, yBuffer;
 int mouseButton = 0;
+int kbstat[256] = {0};
 
 Piece getPieceFromConsole(bool side){
     printf("Please input your piece :\n");
@@ -26,6 +29,7 @@ Piece getPieceFromConsole(bool side){
     if (input[0]=='m') return Piece(0, 0, Menu);
     if ((input[0]=='s')&&(input[1]=='e')) return Piece(0, 0, Settings);
     if ((input[0]=='s')&&(input[1]=='a')) return Piece(0, 0, Save);
+    if ((input[0]=='r')&&(input[1]=='e')) return Piece(0, 0, Recovery);
     if ((input[0]>='a')&&(input[0]<='h')) y = input[0] - 'a' + 1;
     if ((input[0]>='A')&&(input[0]<='H')) y = input[0] - 'A' + 1;
     if ((input[1]>='1')&&(input[1]<='8')) x = input[1] - '0';
@@ -35,7 +39,7 @@ Piece getPieceFromConsole(bool side){
 int menu(){
     clear();
     printf("Under Constructions...\n");
-    pause();
+    mypause();
     return 0;
 }
 
@@ -63,11 +67,9 @@ int settings(){
 int save(){
     time_t t = time(nullptr);
     struct tm *tblock = localtime(&t);
-    char buffer[14];
-    //stringstream ss;
-    //ss << tblock->tm_year << tblock->tm_mon << tblock->tm_mday << tblock->tm_hour << tblock->tm_min << tblock->tm_sec;
-    //ss >>fileName;
-    sprintf(buffer, "%d%02d%02d%02d%02d%02d", tblock->tm_year+1900, tblock->tm_mon+1, tblock->tm_mday, tblock->tm_hour, tblock->tm_min, tblock->tm_sec);
+    char buffer[] = "Save";
+    //char buffer[14];
+    //sprintf(buffer, "___%d%02d%02d%02d%02d%02d", tblock->tm_year+1900, tblock->tm_mon+1, tblock->tm_mday, tblock->tm_hour, tblock->tm_min, tblock->tm_sec);
     string fileName(buffer);
     ofstream output((fileName).c_str());
     cout << output.is_open() << endl;
@@ -80,31 +82,34 @@ int save(){
     return 0;
 }
 
+int readrecord(){
+    return Game::recoverGame();
+}
+
 void renewMouseStat(double x, double y, int button){
     static int button_old = 0;
     static double x_old = 0, y_old = 0;
-    if (Game::areTheyPlaying() == LIFTING) {
+    if (Game::getGameStatus() == Lifting) {
         if (LEFT_MOUSE_BUTTON & button & button_old) {
             theta -= 100 * (x - x_old);
             fai += 100 * (y - y_old);
             if (fai > 89.0) fai = 89.0;
             if (fai < 1.0) fai = 1.0;
-            //printf("renewMouseStat : theta %lf, fai %lf\n", theta, fai);
         }
     }
-    else {
+    else if (Game::getGameStatus() == Playing) {
         //They are actually playing.
-        chosenx = x;
-        choseny = y;
-        printf("I'm working\n");
+        floatingx = x;
+        floatingy = y;
+        if (RIGHT_MOUSE_BUTTON & button) undo = true;
     }
     button_old = button;
     x_old = x; y_old = y;
-    glutPostRedisplay();
 }
 
 double zoomScale(double zoom, bool zoomOut){
-    return (atan(tan(zoom * M_PI / DEFAULT_ZOOM - M_PI) + (zoomOut ? 0.1 : -0.1))+ M_PI) * DEFAULT_ZOOM / M_PI;
+    if (zoomOut) return zoom * 0.95 + MAX_ZOOM * 0.05;
+    else return zoom * 0.95 + MIN_ZOOM * 0.05;
 }
 
 // Mouse Callback
@@ -131,37 +136,84 @@ void mouseKey(int button, int state, int x, int y){
             mouseButton &= ~RIGHT_MOUSE_BUTTON;
             break;
     }
-    //printf("mousekey : zoom %lf\n", zoom);
     if (GLUT_WHEEL_DOWN == button) zoom = zoomScale(zoom, true);
     if (GLUT_WHEEL_UP == button) zoom = zoomScale(zoom, false);
+
     renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
                 (double) (screenHeight/2.0 - y)/screenSize,
                 mouseButton);
-    if (!canMouseInput) return;
+
+    if (Game::getGameStatus() != Playing) return;
     if (state != GLUT_UP) return;
     if ((GLUT_WHEEL_DOWN == button)||(GLUT_WHEEL_UP == button)) return;
-    //cout << screenSize << endl;
-    yBuffer = (x / (screenSize / BOARD_SIZE)) + 1;
-    xBuffer = (y / (screenSize / BOARD_SIZE)) + 1;
+
+    int step = (screenSize / BOARD_SIZE);
+
+    yBuffer = (x - screenWidth / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
+    xBuffer = (y - screenHeight / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
     hasMouseInput = true;
-    //mouseMove++;
-    //canMouseInput = false;
     return;
 }
 
 //Mouse Passive Callback
 void mouseMotion(int x, int y){
-    //printf("mouseMotion : %d, %d\n", x, y);
     renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
                 (double) (screenHeight/2.0 - y)/screenSize,
                 mouseButton);
 }
 
+void update(){
+    if (kbstat['l'] && (Game::getGameStatus() == Playing)) Game::liftTheTable();
+    if (kbstat['\x1B']) {
+        if (Game::getGameStatus() == Playing) Game::pauseGame();
+        else if (Game::getGameStatus() == Pause) Game::resumeGame();
+    }
+    if (kbstat['\x11'] && (Game::getGameStatus() == Lifting)) isFocus = true;
+    if (!kbstat['\x11']) isFocus = false;
+}
+
+// Keyboard Callback
+void keyboardCallback(unsigned char key, int _x, int _y){
+    switch (key) {
+        //case '\x0D' :
+        //case '\x1B' :
+            //glutLeaveMainLoop();
+            //break;
+    }
+    kbstat[key] = 1;
+    update();
+}
+
+void keyboardUpCallback(unsigned char key, int x, int y){
+    kbstat[key] = 0;
+}
+
+// SpecialKeyboard Callback
+void skeyboardCallback(int key, int _x, int _y){
+    switch (key) {
+        case GLUT_KEY_CTRL_L:
+        case GLUT_KEY_CTRL_R:
+            kbstat['\x11'] = 1;
+    }
+    update();
+}
+
+void skeyboardUpCallback(int key, int x, int y){
+    switch (key) {
+        case GLUT_KEY_CTRL_L:
+        case GLUT_KEY_CTRL_R:
+            kbstat['\x11'] = 0;
+    }
+    update();
+}
+
 //For Mouse Input
 Piece getPieceFromMouse(bool side){
-    canMouseInput = true;
-    while (!hasMouseInput) { sleep(100); }
+    while (Game::getGameStatus() == Pause) msleep(100);
+    while ((Game::getGameStatus() == Playing) && !hasMouseInput) msleep(100);
     hasMouseInput = false;
-    canMouseInput = false;
+    //cout << "game status : " << Game::getGameStatus() << endl;
+    if (Game::getGameStatus() != Playing) return Piece(0, 0, Game::getGameStatus());
+    if (undo) { undo = false; return Piece(0, 0, Undo); }
     return Piece(xBuffer, yBuffer, getSideTag(side));
 }
