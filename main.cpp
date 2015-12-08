@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
     display_t = thread(displayThread, argc, argv);
     //display_t.join();
     while (Othello_main(argc, argv));
+    glutLeaveMainLoop();
     return 0;
 }
 
@@ -51,6 +52,7 @@ int Othello_main(int argc, char **argv){
             char ch;
             while (scanf("%c", &ch)&&(ch!='b')&&(ch!='B')&&(ch!='w')&&(ch!='W')) printf("Sorry, but your input is invalid!\n");
             fflush(stdin);
+
             switch (ch) {
                 case 'b' :
                 case 'B' :
@@ -79,6 +81,8 @@ int Othello_main(int argc, char **argv){
 	        	game = thread(Othello_game, &a1, &a2);
 	        	game.join();
 	        }
+	        mypause();
+	        break;
         case 4 :
             settings();
             break;
@@ -108,6 +112,4 @@ void Othello_game(Player* p1, Player* p2){
     if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
     else if (Game::getBoard().getBlackcount() < Game::getBoard().getWhitecount()) printf("White Wins!!!\n");
     else printf("Tie!!!\n");
-
-    //while (Game::getGameStatus() != End) msleep(100)
 }

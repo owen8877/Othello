@@ -5,8 +5,13 @@
 //Initialization of static variables of the class Game
 Board Game::b = Board();
 bool Game::sideFlag = BLACK_SIDE;
-bool Game::PIECE_ASSISTANCE = true;
 Status Game::gameStatus = Idle;
+
+bool Settings::pieceAssistance = true;
+bool Settings::showBigBall = false;
+bool Settings::inputMehod = true; // true stands for GUI Input
+bool Settings::btCtrl = true;
+bool Settings::btShift = false;
 
 //Implements of static private Functions
 int Game::undo(){

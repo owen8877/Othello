@@ -18,7 +18,7 @@ double lightDirAngle = 0;
 double xcenter = 0.0, ycenter = 0.0, zcenter = 0.0;
 clock_t starttime;
 int liftingTableTime = 0;
-int emulateTimes = 5;
+double emulateTimes = 5.0;
 
 inline double exponent_coeffiency(double z){
     if (abs(z - STONE_RADIUS) < 0.1) return (1.0 - 100 * (z - STONE_RADIUS) * (z - STONE_RADIUS));

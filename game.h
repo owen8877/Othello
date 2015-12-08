@@ -13,8 +13,6 @@ private:
     static int undo();
 
 public:
-    static bool PIECE_ASSISTANCE;
-
     static int setPiece(Piece p);
     static bool gameStart();
     static Board getBoard();
@@ -34,4 +32,12 @@ public:
     static int recoverGame();
 };
 
+class Settings{
+public:
+    static bool pieceAssistance;
+    static bool showBigBall;
+    static bool inputMehod; // true stands for GUI Input
+    static bool btCtrl;
+    static bool btShift;
+};
 #endif // GAME_H

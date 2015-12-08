@@ -47,14 +47,30 @@ int settings(){
     do {
         clear();
         printf("-->Settings<--\n");
-        printf(" 1.Game Assistance\t%s\n", Game::PIECE_ASSISTANCE ? ON : OFF);
+        printf(" 1.Game Assistance\t%s\n", Settings::pieceAssistance ? ON : OFF);
+        printf(" 2.Show Big Balls(Cool)\t%s\n", Settings::showBigBall ? ON : OFF);
+        printf(" 3.Input by GUI\t\t%s\n", Settings::inputMehod ? ON : OFF);
+        printf(" 4.Ctrl bullet time\t%s\n", Settings::btCtrl ? ON : OFF);
+        printf(" 5.Shift bullet time\t%s\n", Settings::btShift ? ON : OFF);
         printf("\n");
         printf("-1.Back");
         int input;
         scanf("%d", &input);
         switch (input) {
             case 1 :
-                Game::PIECE_ASSISTANCE = !Game::PIECE_ASSISTANCE;
+                Settings::pieceAssistance = !Settings::pieceAssistance;
+                break;
+            case 2 :
+                Settings::showBigBall = !Settings::showBigBall;
+                break;
+            case 3 :
+                Settings::inputMehod = !Settings::inputMehod;
+                break;
+            case 4 :
+                Settings::btCtrl = !Settings::btCtrl;
+                break;
+            case 5 :
+                Settings::btShift = !Settings::btShift;
                 break;
             case -1 :
                 return 0;
@@ -65,11 +81,7 @@ int settings(){
 }
 
 int save(){
-    time_t t = time(nullptr);
-    struct tm *tblock = localtime(&t);
     char buffer[] = "Save";
-    //char buffer[14];
-    //sprintf(buffer, "___%d%02d%02d%02d%02d%02d", tblock->tm_year+1900, tblock->tm_mon+1, tblock->tm_mday, tblock->tm_hour, tblock->tm_min, tblock->tm_sec);
     string fileName(buffer);
     ofstream output((fileName).c_str());
     cout << output.is_open() << endl;
@@ -168,8 +180,10 @@ void update(){
         if (Game::getGameStatus() == Playing) Game::pauseGame();
         else if (Game::getGameStatus() == Pause) Game::resumeGame();
     }
-    if (kbstat['\x11'] && (Game::getGameStatus() == Lifting)) isFocus = true;
-    if (!kbstat['\x11']) isFocus = false;
+    if (kbstat['\x11'] && (Game::getGameStatus() == Lifting) && Settings::btCtrl) isFocus = true;
+    if (kbstat['\x0F'] && (Game::getGameStatus() == Lifting) && Settings::btShift) isFocus = true;
+    if (!kbstat['\x11'] && Settings::btCtrl) isFocus = false;
+    if (!kbstat['\x0F'] && Settings::btShift) isFocus = false;
 }
 
 // Keyboard Callback
@@ -186,6 +200,7 @@ void keyboardCallback(unsigned char key, int _x, int _y){
 
 void keyboardUpCallback(unsigned char key, int x, int y){
     kbstat[key] = 0;
+    update();
 }
 
 // SpecialKeyboard Callback
@@ -194,6 +209,11 @@ void skeyboardCallback(int key, int _x, int _y){
         case GLUT_KEY_CTRL_L:
         case GLUT_KEY_CTRL_R:
             kbstat['\x11'] = 1;
+            break;
+        case GLUT_KEY_SHIFT_L:
+        case GLUT_KEY_SHIFT_R:
+            kbstat['\x0F'] = 1;
+            break;
     }
     update();
 }
@@ -203,6 +223,11 @@ void skeyboardUpCallback(int key, int x, int y){
         case GLUT_KEY_CTRL_L:
         case GLUT_KEY_CTRL_R:
             kbstat['\x11'] = 0;
+            break;
+        case GLUT_KEY_SHIFT_L:
+        case GLUT_KEY_SHIFT_R:
+            kbstat['\x0F'] = 0;
+            break;
     }
     update();
 }

@@ -10,7 +10,7 @@ string Pattern(Status s){
         case Black : return "●";
         case White : return "○";
         default :
-            return ((getValidTag(Game::getSideFlag()) & s)&&Game::PIECE_ASSISTANCE ? "✻" : " ");
+            return ((getValidTag(Game::getSideFlag()) & s)&&Settings::pieceAssistance ? "✻" : " ");
     }
 }
 
