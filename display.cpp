@@ -8,7 +8,7 @@
 #include <GL/freeglut.h>
 #include <GL/glut.h>
 #include <GL/glu.h>
-#include "math3d.h"
+//#include "math3d.h"
 
 int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 80 * BOARD_SIZE;
 double zoom = DEFAULT_ZOOM;
@@ -39,8 +39,9 @@ inline void setVertexColor(double x, double y) {
 }
 
 void initDisplay(){
+	glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_MULTISAMPLE);
+    //glEnable(GL_MULTISAMPLE);
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_LINE_SMOOTH);
@@ -87,7 +88,7 @@ void Lights(){
 
     GLfloat color_white [] = {1.0, 1.0, 1.0, 1.0};
     GLfloat color_black [] = {0.0, 0.0, 0.0, 1.0};
-    GLfloat ambientLight [] = {0.3f, 0.3f, 0.3f, 1.0f};
+    GLfloat ambientLight [] = {0.1f, 0.1f, 0.1f, 1.0f};
     GLfloat diffuseLight [] = {0.7f, 0.7f, 0.7f, 1.0f};
     GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
     GLfloat globalAmbient [] = {0.3, 0.3, 0.3, 1.0};
@@ -128,11 +129,11 @@ void Lights(){
 
 void drawStone(){
     glMatrixMode(GL_MODELVIEW);
+    if (Game::getGameStatus() == Idle) return;
     for (auto stone : stones) {
         glPushMatrix();
         glTranslated(stone.getX(), stone.getY(), stone.getZ());
-        if (Game::getGameStatus() == Idle) break;
-        else if (Game::getGameStatus() != Lifting) {
+        if (Game::getGameStatus() != Lifting) {
             if ((stone.getColor() != Black) && (stone.getColor() != White)) {
                 if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
                     glTranslated(0.0, 0.0, 0.0001);
@@ -149,17 +150,20 @@ void drawStone(){
                 continue;
             }
         }
+        
         glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
-        glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
-        glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
+        if ((stone.getAxisy()!=0.0) && (stone.getAxisx()!=0.0))
+			glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
+        glutWireSphere(10.0, 10, 10);
+		glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
         glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
+        
         if (stone.getColor() == White) { glScaled(1.0, 1.0, -1.0); glTranslated(0.0, 0.0, -STONE_HEIGHT / 2); }
             glPushMatrix();
             glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
             glColor3d(0.0, 0.0, 0.0);
             glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 5);
             glPopMatrix();
-
             glTranslated(0.0, 0.0, -STONE_HEIGHT / 4);
             glColor3d(1.0, 1.0, 1.0);
             glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 5);
@@ -265,7 +269,9 @@ void drawTable(){
     glPushMatrix();
     glTranslated(0.0, 0.0, TABLE_HEIGHT);
     glScaled(TABLE_SIZE , TABLE_SIZE , TABLE_THICKNESS);
-    glColor3d(1.0, 1.0, 1.0);
+    glColor4d(0.6, 0.6, 0.6, 1.0);
+    glutWireCube(1);
+    glColor4d(1.0, 1.0, 1.0, 0.6);
     glutSolidCube(1);
     glTranslated(0.0, 0.0, 0.5);
     double scaleCoeffiency = BOARD_SIZE * STONE_INTERVAL / TABLE_SIZE;

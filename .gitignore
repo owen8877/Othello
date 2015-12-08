@@ -7,3 +7,7 @@ Othello.depend
 math3d.h
 math3d.cpp
 Save
+Makefile.win
+*.swp
+*.o
+*.exe
