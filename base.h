@@ -30,7 +30,7 @@ const int FLOOR_SIZE = 45;
 const int FLOOR_SHADE_SIZE = 5;
 const int FLOOR_CENTER_SIZE = (2 * FLOOR_SHADE_SIZE);
 const double FLOOR_GRID_SIZE = 0.25;
-const int FPS = 30;
+const int FPS = 60;
 const double TIME_UNIT = (1.0 / (100 * FPS));
 const double REFRESH_UNIT = (1.0 / FPS);
 

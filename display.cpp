@@ -173,11 +173,11 @@ void drawStone(){
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
             glTranslated(stone.getX(), stone.getY(), stone.getZ());
+            if (Settings::showBigBall) { glLineWidth(2); glutWireSphere(10.0, 30, 30); }
             glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
             if ((stone.getAxisy()!=0.0) && (stone.getAxisx()!=0.0))
                 glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
             glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
-            if (Settings::showBigBall) glutWireSphere(10.0, 10, 10);
             glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
 
             if (stone.getColor() == White) { glScaled(1.0, 1.0, -1.0); glTranslated(0.0, 0.0, -STONE_HEIGHT / 2); }
