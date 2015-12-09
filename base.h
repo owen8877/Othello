@@ -1,11 +1,13 @@
 #ifndef BASE_H
 #define BASE_H
 
+#define NDEBUG
+
 #include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <string>
+#include <windows.h>
 
 using namespace std;
 
@@ -49,6 +51,6 @@ const int GLUT_WHEEL_DOWN      = 4;
 
 inline void clear() { system("cls"); }
 inline void mypause() { system("pause"); }
-inline void msleep(int millsec) { usleep(1000*millsec); }
+inline void msleep(int millsec) { Sleep(millsec); }
 
 #endif // BASE_H

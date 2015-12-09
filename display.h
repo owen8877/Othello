@@ -1,6 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
+#define NDEBUG
+
 #include <GL/freeglut.h>
 #include <GL/glut.h>
 #include "element.h"

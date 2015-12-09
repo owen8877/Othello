@@ -22,7 +22,7 @@ int kbstat[256] = {0};
 Piece getPieceFromConsole(bool side){
     printf("Please input your piece :\n");
     char input[2];
-    scanf("%s", input);
+    cin >> input;
     int x = 0, y = 0;
     if ((input[0]=='u')&&(input[1]=='u')) return Piece(0, 0, Undo);
     if (input[0]=='m') return Piece(0, 0, Menu);
@@ -49,7 +49,7 @@ int menu(){
         printf("-1.Back to game\n");
 
         int input;
-        scanf("%d", &input);
+        cin >> input;
         switch (input) {
             case 1 :
                 if (!save()) {
@@ -156,7 +156,7 @@ int settings(){
         printf("\n");
         printf("-1.Back\n");
         int input;
-        scanf("%d", &input);
+        cin >> input;
         switch (input) {
             case 1 :
                 Settings::pieceAssistance = !Settings::pieceAssistance;
