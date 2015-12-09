@@ -9,12 +9,17 @@ private:
     static Board b;
     static bool sideFlag;
     static Status gameStatus;
+    static bool exceptionalQuit;
+    static bool record;
+    static int player0, player1;
 
     static int undo();
 
 public:
+    static bool recoveryAtStart;
+
     static int setPiece(Piece p);
-    static bool gameStart();
+    static bool gameStart(int p0, int p1);
     static Board getBoard();
     static bool getSideFlag();
     static int playerIsWho();
@@ -28,8 +33,13 @@ public:
     static bool liftTheTable();
     static bool pauseGame();
     static bool resumeGame();
+    static bool quitGameByException();
+    static bool quitNormal();
     static void endGame();
-    static int recoverGame();
+    static tuple<int, int, int> recoverGame();
+    static bool isExceptionalQuit();
+    static bool hasRecord();
+    static int isPlayerAI(int number);
 };
 
 class Settings{
@@ -39,5 +49,7 @@ public:
     static bool inputMehod; // true stands for GUI Input
     static bool btCtrl;
     static bool btShift;
+    static bool fancyLights;
+    static bool showAxis;
 };
 #endif // GAME_H

@@ -8,7 +8,6 @@
 #include "game.h"
 
 const double M_PI = 3.14159265358979323846;
-//bool drawable = true;
 const double step = 2.0 / BOARD_SIZE;
 const double hstep = 1.0 / BOARD_SIZE;
 const int CIRCLE_MAX = 30;

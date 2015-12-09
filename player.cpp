@@ -1,6 +1,7 @@
 #include "base.h"
 #include "element.h"
 #include "player.h"
+#include "game.h"
 #include "ai.h"
 #include "io.h"
 
@@ -10,12 +11,14 @@ Player::Player(int _type, bool _side){
 }
 
 Piece Player::getPiece(){
-    //return getPieceFromConsole(side);
-    return getPieceFromMouse(side);
+    return (Settings::inputMehod) ? getPieceFromMouse(side) : getPieceFromConsole(side);
 }
 
 void Player::print(){
-    printf("I'm %s\n", (type == PLAYER_AI) ? "AI" : "human");
     printf("My side is %s\n", (side == BLACK_SIDE) ? "Black" : "White");
     return;
+}
+
+bool Player::whoami(){
+    return PLAYER_HUMAN;
 }

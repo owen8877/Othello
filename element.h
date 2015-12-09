@@ -4,6 +4,7 @@
 #include "base.h"
 #include <fstream>
 #include <vector>
+#include <tuple>
 
 enum Status {Empty, BlackValid, WhiteValid, Valid, Black, Undo, Menu, Settings, White=8, Save, Idle, Playing, Lifting, End, Pause, Recovery};
 
@@ -56,7 +57,7 @@ public:
     void refresh();
     int overturn(Piece p);
     int record();
-    int undo();
+    int undo(unsigned int steps);
 
     unsigned long long getBlackLong();
     unsigned long long getWhiteLong();
@@ -64,7 +65,7 @@ public:
     bool full();
     void print();
 
-    int recovery();
+    tuple<int, int, int> recovery();
 };
 
 Status getValidTag(bool side);

@@ -8,20 +8,20 @@
 #include <GL/freeglut.h>
 #include <GL/glut.h>
 #include <GL/glu.h>
-//#include "math3d.h"
 
 int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 80 * BOARD_SIZE;
 double zoom = DEFAULT_ZOOM;
 double theta = -90.5, fai = 20.0;
 double floatingx = 0.0, floatingy = 0.0;
-GLfloat light_0_position [] = {0.0, 0.0, 40.0, 1.0};
-GLfloat light_0_dir [] = {0.0, 0.0, -1.0};
 float backGroundColor = 0.104;
 float fogDensity = 0.00f;
 bool isFocus = false;
 GLfloat fogColorPause [] = {backGroundColor, backGroundColor, backGroundColor, 1.0f};
 GLfloat fogColorFocus [] = {0.1f, 0.15f, 0.2f, 0.0f};
-
+char s_Save [] = "Save";
+char s_Load [] = "Load";
+char s_Save_and_Quit [] = "Save and Quit";
+char s_Quit_without_saving [] = "Quit without Saving";
 
 extern double xcenter, ycenter, zcenter;
 extern vector<Stone> stones;
@@ -41,7 +41,7 @@ inline void setVertexColor(double x, double y) {
 void initDisplay(){
 	glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //glEnable(GL_MULTISAMPLE);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_LINE_SMOOTH);
@@ -63,6 +63,56 @@ void initDisplay(){
     //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specref);
     glMateriali(GL_FRONT_AND_BACK, GL_SHININESS, 10);
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+
+    GLfloat light_0_position [] = {0.0, 0.0, 40.0, 1.0};
+    GLfloat light_1_position [] = {20.0, 20.0, 20.0, 1.0};
+    GLfloat light_2_position [] = {20.0, -20.0, 20.0, 1.0};
+    GLfloat light_3_position [] = {-20.0, 0.0, 20.0, 1.0};
+    GLfloat light_0_dir [] = {0.0, 0.0, -1.0};
+    GLfloat light_1_dir [] = {-20.0, -20.0, -17.0};
+    GLfloat light_2_dir [] = {-20.0, 20.0, -17.0};
+    GLfloat light_3_dir [] = {20.0, 0.0, -17.0};
+
+    GLfloat color_white [] = {1.0, 1.0, 1.0, 1.0};
+    GLfloat color_black [] = {0.0, 0.0, 0.0, 1.0};
+    GLfloat color_red [] = {1.0, 0.0, 0.0, 1.0};
+    GLfloat color_green [] = {0.0, 1.0, 0.0, 1.0};
+    GLfloat color_blue [] = {0.0, 0.0, 1.0, 1.0};
+    GLfloat ambientLight [] = {0.1f, 0.1f, 0.1f, 1.0f};
+    GLfloat diffuseLight [] = {0.7f, 0.7f, 0.7f, 1.0f};
+    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    GLfloat globalAmbient [] = {0.3, 0.3, 0.3, 1.0};
+
+    glLightfv(GL_LIGHT1, GL_POSITION, light_1_position);
+    glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, light_1_dir);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, color_red);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, color_red);
+    glLightfv(GL_LIGHT2, GL_POSITION, light_2_position);
+    glLightfv(GL_LIGHT2, GL_SPOT_DIRECTION, light_2_dir);
+    glLightfv(GL_LIGHT2, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, color_green);
+    glLightfv(GL_LIGHT2, GL_SPECULAR, color_green);
+    glLightfv(GL_LIGHT3, GL_POSITION, light_3_position);
+    glLightfv(GL_LIGHT3, GL_SPOT_DIRECTION, light_3_dir);
+    glLightfv(GL_LIGHT3, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT3, GL_DIFFUSE, color_blue);
+    glLightfv(GL_LIGHT3, GL_SPECULAR, color_blue);
+    glLightfv(GL_LIGHT0, GL_POSITION, light_0_position);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+    glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_0_dir);
+    glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 90.0);
+    glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 0.5);
+    glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 90.0);
+    glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 0.5);
+    glLightf(GL_LIGHT3, GL_SPOT_CUTOFF, 90.0);
+    glLightf(GL_LIGHT3, GL_SPOT_EXPONENT, 0.5);
+    glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
+    glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 30);
+
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
 }
 
 void Fog(){
@@ -82,114 +132,68 @@ void Fog(){
 }
 
 void Lights(){
-    GLfloat light_1_position [] = {1.0, 0.0, 0.0, 0.0};
-    GLfloat light_2_position [] = {0.0, 1.0, 0.0, 0.0};
-    GLfloat light_3_position [] = {0.0, 0.0, 1.0, 0.0};
-
-    GLfloat color_white [] = {1.0, 1.0, 1.0, 1.0};
-    GLfloat color_black [] = {0.0, 0.0, 0.0, 1.0};
-    GLfloat ambientLight [] = {0.1f, 0.1f, 0.1f, 1.0f};
-    GLfloat diffuseLight [] = {0.7f, 0.7f, 0.7f, 1.0f};
-    GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    GLfloat globalAmbient [] = {0.3, 0.3, 0.3, 1.0};
-
-    glLightfv(GL_LIGHT1, GL_POSITION, light_1_position);
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT1, GL_SPECULAR, specular);
-    glLightfv(GL_LIGHT2, GL_POSITION, light_2_position);
-    glLightfv(GL_LIGHT2, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT2, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT2, GL_SPECULAR, specular);
-    glLightfv(GL_LIGHT3, GL_POSITION, light_3_position);
-    glLightfv(GL_LIGHT3, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT3, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT3, GL_SPECULAR, specular);
-    glLightfv(GL_LIGHT0, GL_POSITION, light_0_position);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambientLight);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuseLight);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
-    glLightfv(GL_LIGHT0, GL_SPOT_DIRECTION, light_0_dir);
-    glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, 90.0);
-    glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, 0.5);
-    glLightf(GL_LIGHT2, GL_SPOT_CUTOFF, 90.0);
-    glLightf(GL_LIGHT2, GL_SPOT_EXPONENT, 0.5);
-    glLightf(GL_LIGHT3, GL_SPOT_CUTOFF, 90.0);
-    glLightf(GL_LIGHT3, GL_SPOT_EXPONENT, 0.5);
-    glLightf(GL_LIGHT0, GL_SPOT_CUTOFF, 30.0);
-    glLightf(GL_LIGHT0, GL_SPOT_EXPONENT, 30);
-
-    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, globalAmbient);
-
-    //glEnable(GL_LIGHT1);
-    //glEnable(GL_LIGHT2);
-    //glEnable(GL_LIGHT3);
-    glEnable(GL_LIGHT0);
+    if (Settings::fancyLights) {
+        glEnable(GL_LIGHT1);
+        glEnable(GL_LIGHT2);
+        glEnable(GL_LIGHT3);
+        glEnable(GL_LIGHT0);
+    }
+    else {
+        glDisable(GL_LIGHT1);
+        glDisable(GL_LIGHT2);
+        glDisable(GL_LIGHT3);
+        glEnable(GL_LIGHT0);
+    }
 }
 
 void drawStone(){
-    glMatrixMode(GL_MODELVIEW);
     if (Game::getGameStatus() == Idle) return;
     for (auto stone : stones) {
-        glPushMatrix();
-        glTranslated(stone.getX(), stone.getY(), stone.getZ());
-        if (Game::getGameStatus() != Lifting) {
-            if ((stone.getColor() != Black) && (stone.getColor() != White)) {
+        if ((stone.getColor() == BlackValid) || (stone.getColor() == WhiteValid) || (stone.getColor() == Valid)) {
+            if (Game::getGameStatus() == Playing) {
                 if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
-                    glTranslated(0.0, 0.0, 0.0001);
-                    if (Game::getSideFlag() == BLACK_SIDE) glColor3d(0.2, 0.2, 0.2);
-                    if (Game::getSideFlag() == WHITE_SIDE) glColor3d(0.8, 0.8, 0.8);
-                    glBegin(GL_QUADS);
-                        glVertex3d(-STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
-                        glVertex3d(-STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
-                        glVertex3d(STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
-                        glVertex3d(STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
-                    glEnd();
+                    glMatrixMode(GL_MODELVIEW);
+                    glPushMatrix();
+                        glTranslated(stone.getX(), stone.getY(), stone.getZ());
+
+                        glTranslated(0.0, 0.0, 0.0001);
+                        if (Game::getSideFlag() == BLACK_SIDE) glColor3d(0.2, 0.2, 0.2);
+                        if (Game::getSideFlag() == WHITE_SIDE) glColor3d(0.8, 0.8, 0.8);
+                        glBegin(GL_QUADS);
+                            glVertex3d(-STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
+                            glVertex3d(-STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
+                            glVertex3d(STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
+                            glVertex3d(STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
+                        glEnd();
+                    glPopMatrix();
                 }
-                glPopMatrix();
-                continue;
             }
+            continue;
         }
-        
-        glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
-        if ((stone.getAxisy()!=0.0) && (stone.getAxisx()!=0.0))
-			glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
-        glutWireSphere(10.0, 10, 10);
-		glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
-        glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
-        
-        if (stone.getColor() == White) { glScaled(1.0, 1.0, -1.0); glTranslated(0.0, 0.0, -STONE_HEIGHT / 2); }
-            glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glPushMatrix();
+            glTranslated(stone.getX(), stone.getY(), stone.getZ());
+            glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
+            if ((stone.getAxisy()!=0.0) && (stone.getAxisx()!=0.0))
+                glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
+            glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
+            if (Settings::showBigBall) glutWireSphere(10.0, 10, 10);
             glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
-            glColor3d(0.0, 0.0, 0.0);
-            glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 5);
+
+            if (stone.getColor() == White) { glScaled(1.0, 1.0, -1.0); glTranslated(0.0, 0.0, -STONE_HEIGHT / 2); }
+            glPushMatrix();
+                glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
+                glColor3d(0.0, 0.0, 0.0);
+                glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
             glPopMatrix();
             glTranslated(0.0, 0.0, -STONE_HEIGHT / 4);
             glColor3d(1.0, 1.0, 1.0);
-            glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 5);
+            glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
         glPopMatrix();
     }
 }
 
 void drawBackGround(){
-    /*
-    glDisable(GL_LIGHTING);
-    glLineWidth(2);
-    glBegin(GL_LINES);
-        glColor3d(1.0, 0.0, 0.0);
-        glVertex3d(0.0, 0.0, 0.0);
-        glVertex3d(1000.0, 0.0, 0.0);
-
-        glColor3d(0.0, 1.0, 0.0);
-        glVertex3d(0.0, 0.0, 0.0);
-        glVertex3d(0.0, 1000.0, 0.0);
-
-        glColor3d(0.0, 0.0, 1.0);
-        glVertex3d(0.0, 0.0, 0.0);
-        glVertex3d(0.0, 0.0, 1000.0);
-    glEnd();
-    */
-
     glEnable(GL_LIGHTING);
     glBegin(GL_QUAD_STRIP);
         glColor3d(1.0, 1.0, 1.0);
@@ -239,14 +243,9 @@ void drawCursor(){
     glEnable(GL_LIGHTING);
     glTranslated(0.0, 0.0, 0.01);
 
-
     double alignx = int(floatingx * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
     double aligny = int(floatingy * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
     double tiny = 1.0 / BOARD_SIZE;
-    //if (alignx < -0.5) alignx = -0.5;
-    //if (aligny < -0.5) aligny = -0.5;
-    //if (alignx > 0.5 - 1.0 / BOARD_SIZE) alignx = 0.5 - 1.0 / BOARD_SIZE;
-    //if (aligny > 0.5 - 1.0 / BOARD_SIZE) aligny = 0.5 - 1.0 / BOARD_SIZE;
 
     if (alignx < -0.5) return;
     if (aligny < -0.5) return;
@@ -263,6 +262,27 @@ void drawCursor(){
 
 void drawTable(){
     glMatrixMode(GL_MODELVIEW);
+    if (Settings::showAxis) {
+        glDisable(GL_LIGHTING);
+        glPushMatrix();
+            glColor3d(1.0, 0.0, 0.0);
+            glBegin(GL_LINES);
+                glVertex3d(0.0, 0.0, 0.0);
+                glVertex3d(1000.0, 0.0, 0.0);
+            glEnd();
+            glColor3d(0.0, 1.0, 0.0);
+            glBegin(GL_LINES);
+                glVertex3d(0.0, 0.0, 0.0);
+                glVertex3d(0.0, 1000.0, 0.0);
+            glEnd();
+            glColor3d(0.0, 0.0, 1.0);
+            glBegin(GL_LINES);
+                glVertex3d(0.0, 0.0, 0.0);
+                glVertex3d(0.0, 0.0, 1000.0);
+            glEnd();
+        glPopMatrix();
+    }
+
     glEnable(GL_LIGHTING);
 
     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 1.0);
@@ -318,7 +338,7 @@ void display(){
     drawStone();
     if (Game::getGameStatus() == Pause) {
         glDisable(GL_DEPTH_TEST);
-        //glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHTING);
         glMatrixMode(GL_PROJECTION);
         glPushMatrix();
             glLoadIdentity();
@@ -327,21 +347,38 @@ void display(){
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
                 glLoadIdentity();
-                glColor4d(0.8, 0.8, 1.0, 0.2);
-                /*
-                glBegin(GL_QUADS);
-                    glVertex2d(0.0, 0.0);
-                    glVertex2d((GLdouble)screenWidth, 0.0);
-                    glVertex2d((GLdouble)screenWidth, (GLdouble)screenHeight);
-                    glVertex2d(0.0, (GLdouble)screenHeight);
-                glEnd();
-                */
-                //glRectd(-1.0, -1.0, 1.0, 1.0);
+                glColor4d(1.0, 0.0, 0.0, 0.8);
+                glRectd(-0.3, 0.3, 0.3, 0.5);
+                glColor4d(1.0, 1.0, 0.0, 0.8);
+                glRectd(-0.3, 0.0, 0.3, 0.2);
+                glColor4d(0.0, 1.0, 0.0, 0.8);
+                glRectd(-0.3, -0.3, 0.3, -0.1);
+                glColor4d(0.0, 0.0, 1.0, 0.8);
+                glRectd(-0.3, -0.6, 0.3, -0.4);
+
+                glColor4d(0.0, 0.0, 0.0, 0.9);
+
+                glRasterPos2d(-0.07, 0.38);
+                for (int k = 0; k < 4; ++k)
+                    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s_Save[k]);
+
+                glRasterPos2d(-0.07, 0.08);
+                for (int k = 0; k < 4; ++k)
+                    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s_Load[k]);
+
+                glRasterPos2d(-0.19, -0.22);
+                for (int k = 0; k < 13; ++k)
+                    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s_Save_and_Quit[k]);
+
+                glRasterPos2d(-0.25, -0.52);
+                for (int k = 0; k < 19; ++k)
+                    glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, s_Quit_without_saving[k]);
+
             glPopMatrix();
 
         glMatrixMode(GL_PROJECTION);
         glPopMatrix();
-        //glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHTING);
         glEnable(GL_DEPTH_TEST);
     }
     glutSwapBuffers();

@@ -7,9 +7,12 @@
 Piece getPieceFromConsole(bool side);
 
 int menu();
+int loadSettings();
 int settings();
 int save();
-int readrecord();
+bool canReadRecord();
+tuple<int, int, int> initReadRecord();
+int readRecord();
 void mouseKey(int button, int state, int x, int y);
 void mouseMotion(int x, int y);
 Piece getPieceFromMouse(bool side);

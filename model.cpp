@@ -142,12 +142,10 @@ void timerCallback(int index){
             starttime = clock();
 
             if (isFocus) {
-                //fogColorFocus[3] = fogColorFocus[3] * 0.9 + 1.0 * 0.1;
                 fogDensity = fogDensity * 0.9 + 0.05 * 0.1;
                 emulateTimes = emulateTimes * 0.9 + 5 * 0.1;
             }
             else {
-                //fogColorFocus[3] = fogColorFocus[3] * 0.9;
                 fogDensity = fogDensity * 0.9;
                 emulateTimes = emulateTimes * 0.9 + 30 * 0.1;
             }
@@ -174,7 +172,6 @@ void timerCallback(int index){
                 Game::endGame();
                 liftingTableTime = 0;
                 fogDensity = 0.05f;
-                //stones.clear();
             }
             break;
     }

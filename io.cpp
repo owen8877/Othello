@@ -2,7 +2,6 @@
 #include "element.h"
 #include "game.h"
 #include "io.h"
-#include <ctime>
 #include <fstream>
 #include <cmath>
 #include <GL/freeglut.h>
@@ -37,9 +36,109 @@ Piece getPieceFromConsole(bool side){
 }
 
 int menu(){
-    clear();
-    printf("Under Constructions...\n");
-    mypause();
+    do {
+        clear();
+        Game::pauseGame();
+        printf("-->Menu<--\n");
+        printf(" 1.Save the game\n");
+        printf(" 2.Load previous SAVE file\n");
+        printf(" 3.Save and quit\n");
+        printf(" 4.Quit without Saving\n");
+        printf(" 5.Settings\n");
+        printf("\n");
+        printf("-1.Back to game\n");
+
+        int input;
+        scanf("%d", &input);
+        switch (input) {
+            case 1 :
+                if (!save()) {
+                    mypause();
+                    Game::resumeGame();
+                    return 0;
+                }
+                else {
+                    mypause();
+                    break;
+                }
+            case 2 :
+                if (!readRecord()) {
+                    mypause();
+                    Game::resumeGame();
+                    return 0;
+                }
+                else {
+                    mypause();
+                    break;
+                }
+                return 0;
+            case 3 :
+                if (!save()) {
+                    Game::quitGameByException();
+                    Game::endGame();
+                    return 0;
+                }
+                break;
+            case 4 :
+                printf("Are you sure to quit without saving? (Progress will be lost!) (y/n)");
+                {
+                    string s;
+                    cin >> s;
+                    if (s[0] == 'y') {
+                        Game::quitGameByException();
+                        Game::endGame();
+                        return 0;
+                    }
+                }
+                break;
+            case 5 :
+                settings();
+                break;
+            case -1 :
+                Game::resumeGame();
+                return 0;
+            default : ;
+        }
+    } while (true);
+    return 0;
+}
+
+int loadSettings(){
+    char buffer[] = "Settings";
+    string fileName(buffer);
+    ifstream input((fileName).c_str());
+    if (!input.is_open()) {
+        printf("Cannot open Settings file.\n");
+        return -1;
+    }
+    input >> Settings::btCtrl;
+    input >> Settings::btShift;
+    input >> Settings::fancyLights;
+    input >> Settings::inputMehod;
+    input >> Settings::pieceAssistance;
+    input >> Settings::showAxis;
+    input >> Settings::showBigBall;
+    input.close();
+    return 0;
+}
+
+int writeSettings(){
+    char buffer[] = "Settings";
+    string fileName(buffer);
+    ofstream output((fileName).c_str());
+    if (!output.is_open()) {
+        printf("Cannot open Settings file.\n");
+        return -1;
+    }
+    output << Settings::btCtrl << endl;
+    output << Settings::btShift << endl;
+    output << Settings::fancyLights << endl;
+    output << Settings::inputMehod << endl;
+    output << Settings::pieceAssistance << endl;
+    output << Settings::showAxis << endl;
+    output << Settings::showBigBall << endl;
+    output.close();
+    //printf("Settings has been correctedly saved.\n");
     return 0;
 }
 
@@ -52,8 +151,10 @@ int settings(){
         printf(" 3.Input by GUI\t\t%s\n", Settings::inputMehod ? ON : OFF);
         printf(" 4.Ctrl bullet time\t%s\n", Settings::btCtrl ? ON : OFF);
         printf(" 5.Shift bullet time\t%s\n", Settings::btShift ? ON : OFF);
+        printf(" 6.Fancy Lights\t\t%s\n", Settings::fancyLights ? ON : OFF);
+        printf(" 7.Show Axises\t\t%s\n", Settings::showAxis ? ON : OFF);
         printf("\n");
-        printf("-1.Back");
+        printf("-1.Back\n");
         int input;
         scanf("%d", &input);
         switch (input) {
@@ -72,7 +173,14 @@ int settings(){
             case 5 :
                 Settings::btShift = !Settings::btShift;
                 break;
+            case 6 :
+                Settings::fancyLights = !Settings::fancyLights;
+                break;
+            case 7 :
+                Settings::showAxis = !Settings::showAxis;
+                break;
             case -1 :
+                writeSettings();
                 return 0;
             default : ;
         }
@@ -84,18 +192,36 @@ int save(){
     char buffer[] = "Save";
     string fileName(buffer);
     ofstream output((fileName).c_str());
-    cout << output.is_open() << endl;
+    if (!output.is_open()) {
+        printf("Cannot write SAVE file.\n");
+        return -1;
+    }
     vector<pair<unsigned long long, unsigned long long> > temp = Game::getBoard().getSequence();
     output << temp.size() << endl;
     for (unsigned int i = 0; i < temp.size(); ++i) output << temp[i].first << endl << temp[i].second << endl;
     output << Game::getBoard().getBlackLong() << endl << Game::getBoard().getWhiteLong() << endl;
+    output << Game::isPlayerAI(0) << endl << Game::isPlayerAI(1) << endl;
     output.close();
-
+    printf("File has been correctedly saved.\n");
     return 0;
 }
 
-int readrecord(){
+bool canReadRecord(){
+    char buffer[] = "Save";
+    string fileName(buffer);
+    ifstream input(fileName.c_str());
+    bool flag = input.is_open();
+    input.close();
+    return flag;
+}
+
+tuple<int, int, int> initReadRecord(){
+    Game::quitGameByException();
     return Game::recoverGame();
+}
+
+int readRecord(){
+    return get<0>(Game::recoverGame());
 }
 
 void renewMouseStat(double x, double y, int button){
@@ -114,6 +240,28 @@ void renewMouseStat(double x, double y, int button){
         floatingx = x;
         floatingy = y;
         if (RIGHT_MOUSE_BUTTON & button) undo = true;
+    }
+    else if ((Game::getGameStatus() == Pause) && Settings::inputMehod) {
+        if (LEFT_MOUSE_BUTTON & button) {
+            if ((x >= -0.15) && (x <= 0.15)) {
+                if ((y >= 0.15) && (y <= 0.25)) {
+                    if (!save()) Game::resumeGame();
+                }
+                else if ((y >= 0.0) && (y <= 0.1)) {
+                    if (!readRecord()) Game::resumeGame();
+                }
+                else if ((y >= -0.15) && (y <= -0.05)) {
+                    if (!save()) {
+                        Game::quitGameByException();
+                        Game::endGame();
+                    }
+                }
+                else if ((y >= -0.3) && (y <= -0.2)) {
+                    Game::quitGameByException();
+                    Game::endGame();
+                }
+            }
+        }
     }
     button_old = button;
     x_old = x; y_old = y;
@@ -176,24 +324,22 @@ void mouseMotion(int x, int y){
 
 void update(){
     if (kbstat['l'] && (Game::getGameStatus() == Playing)) Game::liftTheTable();
-    if (kbstat['\x1B']) {
+    if (kbstat['\x1B'] && Settings::inputMehod) {
         if (Game::getGameStatus() == Playing) Game::pauseGame();
         else if (Game::getGameStatus() == Pause) Game::resumeGame();
     }
     if (kbstat['\x11'] && (Game::getGameStatus() == Lifting) && Settings::btCtrl) isFocus = true;
     if (kbstat['\x0F'] && (Game::getGameStatus() == Lifting) && Settings::btShift) isFocus = true;
-    if (!kbstat['\x11'] && Settings::btCtrl) isFocus = false;
-    if (!kbstat['\x0F'] && Settings::btShift) isFocus = false;
+
+    if (Settings::btCtrl && Settings::btShift) if (!kbstat['\x11'] && !kbstat['\x0F']) isFocus = false;
+    if (Settings::btCtrl && !Settings::btShift) if (!kbstat['\x11']) isFocus = false;
+    if (!Settings::btCtrl && Settings::btShift) if (!kbstat['\x0F']) isFocus = false;
+    if (kbstat['w'] && (Game::getGameStatus() == Playing)) fai = 1.0 * 0.05 + fai * 0.95;
+    if (kbstat['s'] && (Game::getGameStatus() == Playing)) fai = 50.0 * 0.05 + fai * 0.95;
 }
 
 // Keyboard Callback
 void keyboardCallback(unsigned char key, int _x, int _y){
-    switch (key) {
-        //case '\x0D' :
-        //case '\x1B' :
-            //glutLeaveMainLoop();
-            //break;
-    }
     kbstat[key] = 1;
     update();
 }
@@ -234,10 +380,9 @@ void skeyboardUpCallback(int key, int x, int y){
 
 //For Mouse Input
 Piece getPieceFromMouse(bool side){
-    while (Game::getGameStatus() == Pause) msleep(100);
-    while ((Game::getGameStatus() == Playing) && !hasMouseInput) msleep(100);
+    while (Game::getGameStatus() == Pause) msleep(10);
+    while ((Game::getGameStatus() == Playing) && !hasMouseInput) msleep(10);
     hasMouseInput = false;
-    //cout << "game status : " << Game::getGameStatus() << endl;
     if (Game::getGameStatus() != Playing) return Piece(0, 0, Game::getGameStatus());
     if (undo) { undo = false; return Piece(0, 0, Undo); }
     return Piece(xBuffer, yBuffer, getSideTag(side));

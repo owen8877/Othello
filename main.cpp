@@ -12,10 +12,11 @@ extern void refreshModel(bool lifting);
 
 thread display_t, game;
 
-void Othello_game(Player* p1, Player* p2);
+void Othello_game(int p0, int p1);
 int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
+    loadSettings();
     display_t = thread(displayThread, argc, argv);
     //display_t.join();
     while (Othello_main(argc, argv));
@@ -28,6 +29,7 @@ int Othello_main(int argc, char **argv){
     Game::reset();
     printf("Othello by xDroid\n");
     printf("\n");
+    if (canReadRecord()) printf(" 0.Read SAVE file to resume game\n");
     printf(" 1.Play with Friends\n");
     printf(" 2.Play with Watch_Doge\n");
     printf(" 3.Watch_Doge plays with Watch_Doge\n");
@@ -36,52 +38,46 @@ int Othello_main(int argc, char **argv){
     printf("-1.Exit\n");
 
     int select = 0;
+    int player0, player1;
     while (!scanf("%d", &select)) printf("Sorry, but your input is invalid!\n");
     fflush(stdin);
     switch (select) {
-        case 1 :
-        	{
-				Player h1(PLAYER_HUMAN, BLACK_SIDE), h2(PLAYER_HUMAN, WHITE_SIDE);
-            	game = thread(Othello_game, &h1, &h2);
-            	game.join();
+        case 0 :
+            if (canReadRecord()) {
+                tie (ignore, player0, player1) = initReadRecord();
+                game = thread(Othello_game, player0, player1);
+                game.join();
             }
+            break;
+        case 1 :
+            game = thread(Othello_game, PLAYER_HUMAN, PLAYER_HUMAN);
+            game.join();
             break;
         case 2 :
             clear();
             printf("Do you want to play black or white? (B/W)\n");
             char ch;
+            scanf("%c", &ch);
             while (scanf("%c", &ch)&&(ch!='b')&&(ch!='B')&&(ch!='w')&&(ch!='W')) printf("Sorry, but your input is invalid!\n");
             fflush(stdin);
 
             switch (ch) {
                 case 'b' :
                 case 'B' :
-                    {
-						Player h(PLAYER_HUMAN, BLACK_SIDE);
-						AI a(WHITE_SIDE);
-            			game = thread(Othello_game, &h, &a);
-                    	game.join();
-                    }
+                    game = thread(Othello_game, PLAYER_HUMAN, PLAYER_AI);
+                    game.join();
                     break;
                 case 'w' :
                 case 'W' :
-                	{
-	                    Player h(PLAYER_HUMAN, WHITE_SIDE);
-						AI a(BLACK_SIDE);
-	            		game = thread(Othello_game, &a, &h);
-	                    game.join();
-	                }
+                    game = thread(Othello_game, PLAYER_AI, PLAYER_HUMAN);
+                    game.join();
                     break;
                 default : ;
             }
             break;
         case 3 :
-        	{
-	        	AI a1(BLACK_SIDE), a2(WHITE_SIDE);
-	        	game = thread(Othello_game, &a1, &a2);
-	        	game.join();
-	        }
-	        mypause();
+            game = thread(Othello_game, PLAYER_AI, PLAYER_AI);
+            game.join();
 	        break;
         case 4 :
             settings();
@@ -93,12 +89,19 @@ int Othello_main(int argc, char **argv){
     return -1;
 }
 
-void Othello_game(Player* p1, Player* p2){
-    Player* player[2] = {p1, p2};
-    Game::gameStart();
+void Othello_game(int p0, int p1){
+    Player *player0, *player1;
+    if (p0 == PLAYER_HUMAN) player0 = new Player(PLAYER_HUMAN, BLACK_SIDE);
+    else player0 = new AI(BLACK_SIDE);
+
+    if (p1 == PLAYER_HUMAN) player1 = new Player(PLAYER_HUMAN, WHITE_SIDE);
+    else player1 = new AI(WHITE_SIDE);
+
+    Player* player[2] = {player0, player1};
+    Game::gameStart(player[0]->whoami(), player[1]->whoami());
     while (Game::canContinue()) {
         Game::getBoard().print();
-        printf("The side is : %s\n", Game::getSideFlag() ? "Black" : "White");
+        //player[Game::playerIsWho()]->print();
         if (Game::canPlayerPlay(Game::getSideFlag())) {
             while (Game::setPiece((player[Game::playerIsWho()])->getPiece()));
         }
@@ -109,7 +112,13 @@ void Othello_game(Player* p1, Player* p2){
         Game::switchSide();
     }
 
-    if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
-    else if (Game::getBoard().getBlackcount() < Game::getBoard().getWhitecount()) printf("White Wins!!!\n");
-    else printf("Tie!!!\n");
+    if (!Game::isExceptionalQuit()) {
+        if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
+        else if (Game::getBoard().getBlackcount() < Game::getBoard().getWhitecount()) printf("White Wins!!!\n");
+        else printf("Tie!!!\n");
+        mypause();
+    }
+    delete player0;
+    delete player1;
+    Game::quitNormal();
 }

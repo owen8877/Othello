@@ -3,9 +3,10 @@
 DIR = bin
 BIN = $(DIR)/Othello
 OBJ = $(DIR)/main.o $(DIR)/ai.o $(DIR)/display.o $(DIR)/element.o $(DIR)/game.o $(DIR)/io.o $(DIR)/model.o $(DIR)/player.o
-LIB = -Lfreeglut -Wl,-Bstatic -lglut -Wl,-Bdynamic -lGL -lX11 -lXxf86vm -g3 -lXi
+LIB = -Lfreeglut -Wl,-Bstatic -lglut -lGLU -Wl,-Bdynamic -lGL -lX11 -lXxf86vm -lXi
 CXX = g++
-CXXFLAGS = -I"freeglut_l/include" -Wall -g3 -std=c++0x
+#CXXFLAGS = -Wall -g3 -std=c++0x
+CXXFLAGS = -Wall -O2 -std=c++0x
 
 .PHONY: test clean cleanbackup cb win
 

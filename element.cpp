@@ -1,7 +1,6 @@
 #include "base.h"
 #include "element.h"
 #include "game.h"
-#include <GL/freeglut.h>
 
 int dir[8][2] = {{0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1}};
 
@@ -99,7 +98,7 @@ int Board::buildFromPair(pair<unsigned long long, unsigned long long> p){
             w = w >> 1;
         }
     }
-    refreshValid();
+    refresh();
     return 0;
 }
 
@@ -192,9 +191,10 @@ int Board::record(){
     return 0;
 }
 
-int Board::undo(){
-    if (sequence.size() < 2) return -1;
-    sequence.pop_back();
+int Board::undo(unsigned int steps){
+    if (sequence.size() < steps) return -1;
+    if (steps == 2)
+        sequence.pop_back();
     buildFromPair(sequence.back());
     sequence.pop_back();
     return 0;
@@ -257,10 +257,14 @@ void Board::print(){
     printf("\tBlack valid : %d\n\tWhite valid : %d\n", blackvalid, whitevalid);
 }
 
-int Board::recovery(){
+tuple<int, int, int> Board::recovery(){
     char buffer[] = "Save";
     string fileName(buffer);
     ifstream input(fileName.c_str());
+    if (!input.is_open()) {
+        printf("Saved file is missing.\n");
+        return make_tuple(-1, 0, 0);
+    }
     int lines;
     long long b, w;
     input >> lines;
@@ -272,5 +276,8 @@ int Board::recovery(){
     input >> b >> w;
     buildFromPair(make_pair(b, w));
     refresh();
-    return (lines % 2) + 1;
+    int player0, player1;
+    input >> player0 >> player1;
+    input.close();
+    return make_tuple((lines % 2) + 1, player0, player1);
 }

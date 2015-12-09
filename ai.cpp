@@ -18,3 +18,13 @@ Piece AI::getPiece(){
         }
     }
 }
+
+bool AI::whoami(){
+    return PLAYER_AI;
+}
+
+void AI::print(){
+    printf("I'm AI\n");
+    printf("My side is %s\n", (side == BLACK_SIDE) ? "Black" : "White");
+    return;
+}
