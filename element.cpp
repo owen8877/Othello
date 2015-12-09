@@ -6,10 +6,10 @@ int dir[8][2] = {{0,1}, {0,-1}, {1,0}, {-1,0}, {1,1}, {1,-1}, {-1,1}, {-1,-1}};
 
 string Pattern(Status s){
     switch (s) {
-        case Black : return "â—";
-        case White : return "â—‹";
+        case Black : return "¡ñ";
+        case White : return "¡ğ";
         default :
-            return ((getValidTag(Game::getSideFlag()) & s)&&Settings::pieceAssistance ? "âœ»" : " ");
+            return ((getValidTag(Game::getSideFlag()) & s)&&Settings::pieceAssistance ? "¡ù" : "  ");
     }
 }
 
@@ -227,32 +227,32 @@ bool Board::full(){
 void Board::print(){
     clear();
 
-    printf("â”Œ");
-    for (int i = 0; i < size; ++i) printf("â”€â”€â”€â”¬");
-    printf("â”€â”€â”€â”\n");
+    printf("©°");
+    for (int i = 0; i < size; ++i) printf("©¤©Ğ");
+    printf("©¤©´\n");
 
-    printf("â”‚   ");
-    for (int i = 0; i < size; ++i) printf("â”‚ %c ", 'A'+i);
-    printf("â”‚\n");
+    printf("©¦  ");
+    for (int i = 0; i < size; ++i) printf("©¦ %c", 'A'+i);
+    printf("©¦\n");
 
-    printf("â”œâ”€â”€â”€");
-    for (int i = 0; i < size; ++i) printf("â”¼â”€â”€â”€");
-    printf("â”¤\n");
+    printf("©À©¤");
+    for (int i = 0; i < size; ++i) printf("©à©¤");
+    printf("©È\n");
 
     for (int i = 1; i <= size; ++i) {
-        printf("â”‚ %d ", i);
+        printf("©¦ %d", i);
         for (int j = 1; j <= size; ++j) {
-            printf("â”‚ %s ", Pattern(pieces[i][j]).c_str());
+            printf("©¦%s", Pattern(pieces[i][j]).c_str());
         }
-        printf("â”‚\n");
+        printf("©¦\n");
         if (i==size) break;
-        printf("â”œâ”€â”€â”€");
-        for (int i = 0; i < size; ++i) printf("â”¼â”€â”€â”€");
-        printf("â”¤\n");
+        printf("©À©¤");
+        for (int i = 0; i < size; ++i) printf("©à©¤");
+        printf("©È\n");
     }
-    printf("â””â”€â”€â”€");
-    for (int i = 0; i < size; ++i) printf("â”´â”€â”€â”€");
-    printf("â”˜\n");
+    printf("©¸©¤");
+    for (int i = 0; i < size; ++i) printf("©Ø©¤");
+    printf("©¼\n");
     printf("\tBlack count : %d\n\tWhite count : %d\n", blackcount, whitecount);
     printf("\tBlack valid : %d\n\tWhite valid : %d\n", blackvalid, whitevalid);
 }

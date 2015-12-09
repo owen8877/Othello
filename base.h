@@ -47,8 +47,8 @@ const int RIGHT_MOUSE_BUTTON   = 0x0004;
 const int GLUT_WHEEL_UP        = 3;
 const int GLUT_WHEEL_DOWN      = 4;
 
-inline void clear() { system("clear"); }
-inline void mypause() { system("read"); }
+inline void clear() { system("cls"); }
+inline void mypause() { system("pause"); }
 inline void msleep(int millsec) { usleep(1000*millsec); }
 
 #endif // BASE_H

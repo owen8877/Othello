@@ -41,7 +41,7 @@ inline void setVertexColor(double x, double y) {
 void initDisplay(){
 	glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_MULTISAMPLE);
+    //glEnable(GL_MULTISAMPLE);
     glEnable(GL_POINT_SMOOTH);
     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_LINE_SMOOTH);
@@ -150,7 +150,8 @@ void drawStone(){
     if (Game::getGameStatus() == Idle) return;
     for (auto stone : stones) {
         if ((stone.getColor() == BlackValid) || (stone.getColor() == WhiteValid) || (stone.getColor() == Valid)) {
-            if (Game::getGameStatus() == Playing) {
+            if (Game::isPlayerAI(Game::playerIsWho()) == PLAYER_AI) continue;
+			if (Game::getGameStatus() == Playing) {
                 if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
                     glMatrixMode(GL_MODELVIEW);
                     glPushMatrix();

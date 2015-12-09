@@ -57,7 +57,7 @@ int Othello_main(int argc, char **argv){
             clear();
             printf("Do you want to play black or white? (B/W)\n");
             char ch;
-            scanf("%c", &ch);
+            //scanf("%c", &ch);
             while (scanf("%c", &ch)&&(ch!='b')&&(ch!='B')&&(ch!='w')&&(ch!='W')) printf("Sorry, but your input is invalid!\n");
             fflush(stdin);
 
