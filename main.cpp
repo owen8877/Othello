@@ -18,9 +18,9 @@ int Othello_main(int argc, char **argv);
 int main(int argc, char **argv) {
     loadSettings();
     display_t = thread(displayThread, argc, argv);
-    //display_t.join();
     while (Othello_main(argc, argv));
     glutLeaveMainLoop();
+    display_t.join();
     return 0;
 }
 
