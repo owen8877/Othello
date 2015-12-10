@@ -5,6 +5,7 @@
 #include "io.h"
 #include "display.h"
 #include <thread>
+#include <windows.h>
 
 using namespace std;
 
@@ -18,9 +19,9 @@ int Othello_main(int argc, char **argv);
 int main(int argc, char **argv) {
     loadSettings();
     display_t = thread(displayThread, argc, argv);
-    //display_t.join();
     while (Othello_main(argc, argv));
     glutLeaveMainLoop();
+	display_t.join();
     return 0;
 }
 
@@ -39,7 +40,8 @@ int Othello_main(int argc, char **argv){
 
     int select = 0;
     int player0, player1;
-    while (!(cin >> select)) printf("Sorry, but your input is invalid!\n");
+    SetWindowPos(GetConsoleWindow(), HWND_TOP, 700, 100, 0, 0, SWP_NOSIZE);
+    while (!(cin >> select)) { printf("Sorry, but your input is invalid!\n"); fflush(stdin); } 
     fflush(stdin);
     switch (select) {
         case 0 :
@@ -57,7 +59,6 @@ int Othello_main(int argc, char **argv){
             clear();
             printf("Do you want to play black or white? (B/W)\n");
             char ch;
-            //scanf("%c", &ch);
             while ((cin >> ch) && (ch != 'b') && (ch != 'B') && (ch != 'w') && (ch != 'W')) printf("Sorry, but your input is invalid!\n");
             fflush(stdin);
 

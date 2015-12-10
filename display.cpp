@@ -151,7 +151,7 @@ void drawStone(){
     for (auto stone : stones) {
         if ((stone.getColor() == BlackValid) || (stone.getColor() == WhiteValid) || (stone.getColor() == Valid)) {
             if (Game::isPlayerAI(Game::playerIsWho()) == PLAYER_AI) continue;
-			if (Game::getGameStatus() == Playing) {
+			if ((Game::getGameStatus() == Playing) && (Settings::pieceAssistance)) {
                 if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
                     glMatrixMode(GL_MODELVIEW);
                     glPushMatrix();

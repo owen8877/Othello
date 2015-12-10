@@ -1,4 +1,4 @@
-#Othello
+﻿#Othello
 ##<a name="index"/>目录
 * [简介](#intro)
 * [编译事项](#compile)
@@ -20,13 +20,21 @@
 * ~~随机算法AI~~
 
 ##<a name="compile"/>编译事项
-* `master` 分支应于Linux/Unix环境下编译；
-* 编译前需安装库文件`freeglut3-dev`与`libglu1-mesa-dev`：
-```Bash
-sudo apt-get install freeglut3-dev
-sudo apt-get install libglu1-mesa-dev
+* **请不要自行编译`windows-version` 分支**，**请前往Release分支下载Windows版本下的Othello**；
+* 如果您真的很想自行编译，请先下载最新版本的freeglut库文件并加入到您的编译器目录中，[下载地址](http://freeglut.sourceforge.net/)；
+* 编译器参数如下：
 ```
-* `Makefile`文件已经给出，在git仓库目录下键入命令`make`即可编译。
+-std=c++0x
+-DFREEGLUT_STATIC
+```
+* 链接器参数如下：
+```
+-lfreeglut_static
+-lopengl32
+-lwinmm
+-lgdi32
+-lglu32
+```
 
 ##<a name="op"/>操作指南
 **注意事项：所有控制台操作输入后，必须键入回车以确定**
