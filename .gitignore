@@ -11,3 +11,4 @@ Makefile.win
 *.swp
 *.o
 *.exe
+*.css
