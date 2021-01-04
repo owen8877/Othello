@@ -3,10 +3,9 @@
 DIR = bin
 BIN = $(DIR)/Othello
 OBJ = $(DIR)/main.o $(DIR)/ai.o $(DIR)/display.o $(DIR)/element.o $(DIR)/game.o $(DIR)/io.o $(DIR)/model.o $(DIR)/player.o
-LIB = -Lfreeglut -Wl,-Bstatic -lglut -lGLU -Wl,-Bdynamic -lGL -lX11 -lXxf86vm -lXi
+LIB = -Lfreeglut -Wl,-Bdynamic -lglut -lGLU -lGL -lX11 -lXxf86vm -lXi -lpthread
 CXX = g++
-#CXXFLAGS = -Wall -g3 -std=c++0x
-CXXFLAGS = -Wall -O2 -std=c++0x
+CXXFLAGS = -Wall -O3 -std=c++0x
 
 .PHONY: test clean cleanbackup cb win
 
