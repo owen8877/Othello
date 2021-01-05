@@ -410,14 +410,15 @@ void reshape(int width, int height) {
 //     glutPostRedisplay();
 }
 
-typedef struct Vertex_s {
+struct Vertex_N {
     float position[3];
-} Vertex;
+    float normal[3];
+};
 
-typedef struct VertexWithColor_s {
+struct Vertex_C {
     float position[3];
     float color[3];
-} VertexWithColor;
+};
 
 struct RenderResource {
     GLuint vao{};
@@ -428,35 +429,7 @@ struct RenderResource {
 
     RenderResource() = delete;
 
-    RenderResource(const vector<Vertex> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
-        glGenVertexArrays(1, &vao);
-        glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ibo);
-
-        glBindVertexArray(vao);
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
-        drawCount = indices.size();
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-        glEnableVertexAttribArray(0);
-
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-//        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-//        glBindVertexArray(0);
-    }
-
-    RenderResource(const vector<VertexWithColor> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+    RenderResource(const vector<Vertex_N> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
         glGenBuffers(1, &ibo);
@@ -474,16 +447,26 @@ struct RenderResource {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
         glEnableVertexAttribArray(1);
+    }
 
-        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-//        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    RenderResource(const vector<Vertex_C> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ibo);
 
-        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(vao);
 
-        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-//        glBindVertexArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
+        drawCount = indices.size();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
     }
 
     void draw() const {
@@ -499,61 +482,60 @@ struct RenderResource {
 };
 
 RenderResource getCube(float cubeSize_2) {
-    const vector<Vertex> vertices = {
-            // Front face
-            {{-cubeSize_2, -cubeSize_2, cubeSize_2}},
-            {{cubeSize_2,  -cubeSize_2, cubeSize_2}},
-            {{cubeSize_2,  cubeSize_2,  cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  cubeSize_2}},
-            // Back face
-            {{cubeSize_2,  -cubeSize_2, -cubeSize_2}},
-            {{-cubeSize_2, -cubeSize_2, -cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  -cubeSize_2}},
-            {{cubeSize_2,  cubeSize_2,  -cubeSize_2}},
-            // Left face
-            {{-cubeSize_2, -cubeSize_2, -cubeSize_2}},
-            {{-cubeSize_2, -cubeSize_2, cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  -cubeSize_2}},
-            // Right face
-            {{cubeSize_2,  -cubeSize_2, cubeSize_2}},
-            {{cubeSize_2,  -cubeSize_2, -cubeSize_2}},
-            {{cubeSize_2,  cubeSize_2,  -cubeSize_2}},
-            {{cubeSize_2,  cubeSize_2,  cubeSize_2}},
-            // Top face
-            {{cubeSize_2,  cubeSize_2,  -cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  -cubeSize_2}},
-            {{-cubeSize_2, cubeSize_2,  cubeSize_2}},
-            {{cubeSize_2,  cubeSize_2,  cubeSize_2}},
-            // Bottom face
-            {{-cubeSize_2, -cubeSize_2, -cubeSize_2}},
-            {{cubeSize_2,  -cubeSize_2, -cubeSize_2}},
-            {{cubeSize_2,  -cubeSize_2, cubeSize_2}},
-            {{-cubeSize_2, -cubeSize_2, cubeSize_2}},
+    const vector<Vertex_N> vertices = {
+            {-0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f},
+            {0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f},
+            {0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f},
+            {0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f},
+            {-0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f},
+            {-0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f},
+
+            {-0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f},
+            {0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f},
+            {0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f},
+            {0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f},
+            {-0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f},
+            {-0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f},
+
+            {-0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f},
+            {-0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f},
+            {-0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f},
+            {-0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f},
+            {-0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f},
+            {-0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f},
+
+            {0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f},
+            {0.5f,  0.5f,  -0.5f, 1.0f,  0.0f,  0.0f},
+            {0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f},
+            {0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f},
+            {0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f},
+            {0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f},
+
+            {-0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f},
+            {0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f},
+            {0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f},
+            {0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f},
+            {-0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f},
+            {-0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f},
+
+            {-0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f},
+            {0.5f,  0.5f,  -0.5f, 0.0f,  1.0f,  0.0f},
+            {0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f},
+            {0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f},
+            {-0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f},
+            {-0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f},
     };
 
-    // Generate the index array
-    const GLsizei vertsPerSide = 4;
-    const GLsizei numSides = 6;
-    const GLsizei indicesPerSide = 6;
-    const GLsizei numIndices = indicesPerSide * numSides;
-    vector<GLushort> indices(numIndices);
-    GLuint i = 0;
-    for (GLushort j = 0; j < numSides; ++j) {
-        GLushort sideBaseIdx = j * vertsPerSide;
-        indices[i++] = sideBaseIdx + 0;
-        indices[i++] = sideBaseIdx + 1;
-        indices[i++] = sideBaseIdx + 2;
-        indices[i++] = sideBaseIdx + 2;
-        indices[i++] = sideBaseIdx + 3;
-        indices[i++] = sideBaseIdx + 0;
+    vector<GLushort> indices(36);
+    for (int i = 0; i < indices.size(); ++i) {
+        indices[i] = i;
     }
 
     return RenderResource(vertices, indices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
 }
 
 RenderResource getAxisFrames() {
-    const vector<VertexWithColor> vertices = {
+    const vector<Vertex_C> vertices = {
             {{0.0f,    0.0f,    0.0f},    {1.0f, 0.0f, 0.0f}},
             {{0.0f,    0.0f,    1000.0f}, {1.0f, 0.0f, 0.0f}},
             {{0.0f,    0.0f,    0.0f},    {0.0f, 1.0f, 0.0f}},
@@ -640,26 +622,37 @@ void displayThread(const bool *gameEnds) {
     initDisplay();
     refreshModel(false);
 
-    Shader simpleShader ("shader/simple.vert", "shader/simple.frag");
-    simpleShader.use();
+    Shader simpleShader("shader/simple.vert", "shader/simple.frag");
+    Shader lightShader("shader/simple.vert", "shader/light.frag");
+    Shader withColorShader("shader/with_color.vert", "shader/with_color.frag");
 
-    Shader withColorShader ("shader/with_color.vert", "shader/with_color.frag");
-    withColorShader.use();
-
-    // Create the 3D cube
-    float cubeSize_2 = 1.0f / 2.0f; // Half the cube's size
+    // Render objects
     RenderResource axisFrames = getAxisFrames();
-    RenderResource cube = getCube(cubeSize_2);
+    RenderResource cube = getCube(0.5f);
+    RenderResource light = getCube(0.2f);
 
     glm::mat4 modelMat = glm::rotate(glm::mat4(1.0f), (float) M_PI / 4 * 0, glm::vec3(0.0f, 1.0f, 0.0f));
     // Set up the camera
     // NOTE: OpenGL cameras look down the negative z-axis
-    glm::vec3 cameraPos = glm::vec3(3.0f, 1.5f, 3.0f);
+    glm::vec3 cameraPos = glm::vec3(3.0f, 0.4f, 3.0f);
     glm::vec3 cameraFocus = glm::vec3(0.0f, 0.0f, 0.0f);
     glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
     glm::mat4 viewMat = glm::lookAt(cameraPos, cameraFocus, cameraUp);
     glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float) screenWidth / (float) screenHeight, 1.0f,
                                          1000.f);
+
+    glm::vec3 lightPos(0.7f, 0.4f, 2.0f);
+    auto lightModelMat = glm::mat4(1.0f);
+    lightModelMat = glm::translate(lightModelMat, lightPos);
+    lightModelMat = glm::scale(lightModelMat, glm::vec3(0.3f));
+
+    lightShader.use();
+    lightShader.setMat4("projection", projMat);
+    lightShader.setMat4("view", viewMat);
+    lightShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    lightShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    lightShader.setVec3("lightPos", lightPos);
+    lightShader.setVec3("viewPos", cameraPos);
 
     simpleShader.use();
     simpleShader.setMat4("projection", projMat);
@@ -681,18 +674,19 @@ void displayThread(const bool *gameEnds) {
         }
 
         // Update scene
-        float timeValue = SDL_GetTicks() / 1000.0f;
-        float greenValue = (sin(timeValue) / 10.0f) + 0.5f;
-
         render_status = updateRenderStatus(render_status);
         display();
 
         // Render
-        simpleShader.use();
+        lightShader.use();
         modelMat = glm::rotate(modelMat, (float) M_PI / 4 / FPS, glm::vec3(0.0f, 1.0f, 0.0f));
-        simpleShader.setMat4("model", modelMat);
-        simpleShader.setVec4("uniformColor", glm::vec4(0.0f, greenValue, 0.0f, 1.0f));
+        lightShader.setMat4("model", modelMat);
         cube.draw();
+
+        simpleShader.use();
+        simpleShader.setMat4("model", lightModelMat);
+        simpleShader.setVec4("uniformColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        light.draw();
 
         withColorShader.use();
         withColorShader.setMat4("model", glm::identity<glm::mat4>());
@@ -705,6 +699,7 @@ void displayThread(const bool *gameEnds) {
     // Clean up
     cube.free();
     axisFrames.free();
+    light.free();
 
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);
