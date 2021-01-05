@@ -3,7 +3,7 @@
 #include "base.h"
 #include "game.h"
 #include "model.h"
-#include "shader.h"
+#include "shader/shader.h"
 #include <cmath>
 #include <vector>
 #include <glm/glm.hpp>
@@ -42,6 +42,7 @@ extern void skeyboardCallback(int key, int _x, int _y);
 
 extern void skeyboardUpCallback(int key, int _x, int _y);
 
+
 inline void setVertexColor(double x, double y) {
 //    double p = pow(((pow(x, 8) + pow(y, 8)) / 2.0), 0.125) / FLOOR_SHADE_SIZE;
 //    double temp = (p < 2) ? (-(p-2)*(p-2) + 1) : 1.0;
@@ -49,8 +50,8 @@ inline void setVertexColor(double x, double y) {
 }
 
 void initDisplay() {
-// 	glEnable(GL_BLEND);
-//     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 //     glEnable(GL_MULTISAMPLE);
 //     glEnable(GL_POINT_SMOOTH);
 //     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
@@ -58,10 +59,10 @@ void initDisplay() {
 //     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
 //     glEnable(GL_POLYGON_SMOOTH);
 //     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-
+//
 //     glEnable(GL_NORMALIZE);
 
-//     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 //     glEnable(GL_COLOR_MATERIAL);
 //     glShadeModel(GL_SMOOTH);
 
@@ -413,127 +414,92 @@ typedef struct Vertex_s {
     float position[3];
 } Vertex;
 
-GLuint vboCreate(const Vertex *vertices, GLuint numVertices) {
-    // Create the Vertex Buffer Object
-    GLuint vbo;
-    int nBuffers = 1;
-    glGenBuffers(nBuffers, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    // Copy the vertex data in, and deactivate
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * numVertices, vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    // Check for problems
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        // Failed
-        glDeleteBuffers(nBuffers, &vbo);
-        SDL_Log("Creating VBO failed, code %u\n", err);
-        vbo = 0;
+typedef struct VertexWithColor_s {
+    float position[3];
+    float color[3];
+} VertexWithColor;
+
+struct RenderResource {
+    GLuint vao{};
+    GLuint vbo{};
+    GLuint ibo{};
+    GLenum mode;
+    int drawCount{};
+
+    RenderResource() = delete;
+
+    RenderResource(const vector<Vertex> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ibo);
+
+        glBindVertexArray(vao);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
+        drawCount = indices.size();
+
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(0);
+
+        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+//        glBindVertexArray(0);
     }
 
-    return vbo;
-}
+    RenderResource(const vector<VertexWithColor> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+        glGenVertexArrays(1, &vao);
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ibo);
 
-GLuint iboCreate(GLushort *indices, GLuint numIndices) {
-    // Create the Index Buffer Object
-    GLuint ibo;
-    int nBuffers = 1;
-    glGenBuffers(nBuffers, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    // Copy the index data in, and deactivate
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * numIndices, indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    // Check for problems
-    GLenum err = glGetError();
-    if (err != GL_NO_ERROR) {
-        // Failed
-        glDeleteBuffers(nBuffers, &ibo);
-        SDL_Log("Creating IBO failed, code %u\n", err);
-        ibo = 0;
-    }
-    return ibo;
-}
+        glBindVertexArray(vao);
 
-/** Frees the IBO.
- ** @param vbo the IBO's name.*/
-void iboFree(GLuint ibo) { glDeleteBuffers(1, &ibo); }
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 
-void vboFree(GLuint vbo) { glDeleteBuffers(1, &vbo); }
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
+        drawCount = indices.size();
 
-void displayThread(const bool *gameEnds) {
-    // glutInit(&argc, argv); dep
-    // glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-    // glutInitWindowPosition(50, 50); +
-    // glutInitWindowSize(screenSize, screenSize); done
-    // glutCreateWindow("Othello"); done
-    // glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS); done
-    // glutDisplayFunc(&display);
-    // glutMouseFunc(&mouseKey);
-    // glutMotionFunc(&mouseMotion);
-    // glutPassiveMotionFunc(&mouseMotion);
-    // glutReshapeFunc(&reshape);
-    // glutKeyboardFunc(&keyboardCallback);
-    // glutSpecialFunc(&skeyboardCallback);
-    // glutKeyboardUpFunc(&keyboardUpCallback);
-    // glutSpecialUpFunc(&skeyboardUpCallback);
-    // initDisplay();+
-    // refreshModel(false);done
-    // glutTimerFunc(0, &updateRenderStatus, 0);done
-    // glutMainLoop();deprecated
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *) (3 * sizeof(float)));
+        glEnableVertexAttribArray(1);
 
-    // Set-up window
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-        return;
+        // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+        // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+//        glBindVertexArray(0);
     }
 
-    // Setup the exit hook
-    atexit(SDL_Quit);
-
-    // Request OpenGL ES 2.0
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-    // Create the window
-    SDL_Window *window = SDL_CreateWindow("Othello", 50, 50, screenSize, screenSize,
-                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (!window) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Couldn't create the main window.", NULL);
-        return;
+    void draw() const {
+        glBindVertexArray(vao);
+        glDrawElements(mode, drawCount, GL_UNSIGNED_SHORT, nullptr);
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr) {
-        SDL_Log("Could not create a renderer: %s", SDL_GetError());
-        return;
+    void free() {
+        glDeleteVertexArrays(1, &vao);
+        glDeleteBuffers(1, &vbo);
+        glDeleteBuffers(1, &ibo);
     }
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+};
 
-    int render_status = 0;
-
-    initDisplay();
-    refreshModel(false);
-    GLuint shaderProg = shaderProgLoad("texture.vert", "texture.frag");
-    if (!shaderProg) {
-        // Error messages already displayed...
-        return;
-    }
-    glUseProgram(shaderProg);
-
-    // Get other uniform locations
-    GLint mvpMatrixLoc = glGetUniformLocation(shaderProg, "mvpMatrix");
-    if (mvpMatrixLoc < 0) {
-        SDL_Log("ERROR: Couldn't get mvpMatrix's location.");
-        return;
-    }
-    GLint vertexColorLocation = glGetUniformLocation(shaderProg, "uniformColor");
-
-    // Create the 3D cube
-    float cubeSize_2 = 100.0f / 2.0f;// Half the cube's size
-    const Vertex vertices[] = {
+RenderResource getCube(float cubeSize_2) {
+    const vector<Vertex> vertices = {
             // Front face
             {{-cubeSize_2, -cubeSize_2, cubeSize_2}},
             {{cubeSize_2,  -cubeSize_2, cubeSize_2}},
@@ -563,27 +529,15 @@ void displayThread(const bool *gameEnds) {
             {{-cubeSize_2, -cubeSize_2, -cubeSize_2}},
             {{cubeSize_2,  -cubeSize_2, -cubeSize_2}},
             {{cubeSize_2,  -cubeSize_2, cubeSize_2}},
-            {{-cubeSize_2, -cubeSize_2, cubeSize_2}}};
-
-    GLsizei vertSize = sizeof(vertices[0]);
-    GLsizei numVertices = sizeof(vertices) / vertSize;
-    GLuint triangleVBO = vboCreate(vertices, numVertices);
-    if (!triangleVBO) {
-        // Failed. Error message has already been printed, so just quit
-        return;
-    }
-
-    GLuint positionIdx = 0; // Position is vertex attribute 0
-    glBindBuffer(GL_ARRAY_BUFFER, triangleVBO);
-    glVertexAttribPointer(positionIdx, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid *) nullptr);
-    glEnableVertexAttribArray(positionIdx);
+            {{-cubeSize_2, -cubeSize_2, cubeSize_2}},
+    };
 
     // Generate the index array
     const GLsizei vertsPerSide = 4;
     const GLsizei numSides = 6;
     const GLsizei indicesPerSide = 6;
     const GLsizei numIndices = indicesPerSide * numSides;
-    GLushort indices[numIndices];
+    vector<GLushort> indices(numIndices);
     GLuint i = 0;
     for (GLushort j = 0; j < numSides; ++j) {
         GLushort sideBaseIdx = j * vertsPerSide;
@@ -595,29 +549,127 @@ void displayThread(const bool *gameEnds) {
         indices[i++] = sideBaseIdx + 0;
     }
 
-    GLuint ibo = iboCreate(indices, numIndices);
-    if (!ibo) {
-        return;
+    return RenderResource(vertices, indices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
+}
+
+RenderResource getAxisFrames() {
+    const vector<VertexWithColor> vertices = {
+            {{0.0f,    0.0f,    0.0f},    {1.0f, 0.0f, 0.0f}},
+            {{0.0f,    0.0f,    1000.0f}, {1.0f, 0.0f, 0.0f}},
+            {{0.0f,    0.0f,    0.0f},    {0.0f, 1.0f, 0.0f}},
+            {{0.0f,    1000.0f, 0.0f},    {0.0f, 1.0f, 0.0f}},
+            {{0.0f,    0.0f,    0.0f},    {0.0f, 0.0f, 1.0f}},
+            {{1000.0f, 0.0f,    0.0f},    {0.0f, 0.0f, 1.0f}},
+    };
+
+    const vector<GLushort> indices = {0, 1, 2, 3, 4, 5};
+
+    return RenderResource(vertices, indices, GL_LINES); // NOLINT(modernize-return-braced-init-list)
+}
+
+SDL_Window *initWindow() {
+    // Set-up window
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        throw std::runtime_error("Cannot initialize SDL.");
     }
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    // Setup the exit hook
+    atexit(SDL_Quit);
 
-    glm::mat4 modelMat = glm::rotate(glm::mat4(1.0f), (float) M_PI / 4, glm::vec3(1.0f, 0.0f, 0.0f));
-    modelMat = glm::rotate(modelMat, (float) M_PI / 4, glm::vec3(0.0f, 1.0f, 0.0f));
+    // Request OpenGL ES 2.0
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+    // Create the window
+    SDL_Window *window = SDL_CreateWindow("Othello", 50, 50, screenSize, screenSize,
+                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    if (!window) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Couldn't create the main window.", nullptr);
+        throw std::runtime_error("Couldn't create the main window.");
+    }
+
+    return window;
+}
+
+SDL_Renderer *initRenderer(SDL_Window *window) {
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (renderer == nullptr) {
+        SDL_Log("Could not create a renderer: %s", SDL_GetError());
+        throw std::runtime_error("Could not create a renderer.");
+    }
+    return renderer;
+}
+
+void setSDLAttribute() {
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+}
+
+void displayThread(const bool *gameEnds) {
+    // glutInit(&argc, argv); dep
+    // glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
+    // glutInitWindowPosition(50, 50); +
+    // glutInitWindowSize(screenSize, screenSize); done
+    // glutCreateWindow("Othello"); done
+    // glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS); done
+    // glutDisplayFunc(&display);
+    // glutMouseFunc(&mouseKey);
+    // glutMotionFunc(&mouseMotion);
+    // glutPassiveMotionFunc(&mouseMotion);
+    // glutReshapeFunc(&reshape);
+    // glutKeyboardFunc(&keyboardCallback);
+    // glutSpecialFunc(&skeyboardCallback);
+    // glutKeyboardUpFunc(&keyboardUpCallback);
+    // glutSpecialUpFunc(&skeyboardUpCallback);
+    // initDisplay();+
+    // refreshModel(false);done
+    // glutTimerFunc(0, &updateRenderStatus, 0);done
+    // glutMainLoop();deprecated
+
+    SDL_Window *window = initWindow();
+
+    SDL_Renderer *renderer = initRenderer(window);
+
+    setSDLAttribute();
+
+    int render_status = 0;
+
+    initDisplay();
+    refreshModel(false);
+
+    Shader simpleShader ("shader/simple.vert", "shader/simple.frag");
+    simpleShader.use();
+
+    Shader withColorShader ("shader/with_color.vert", "shader/with_color.frag");
+    withColorShader.use();
+
+    // Create the 3D cube
+    float cubeSize_2 = 1.0f / 2.0f; // Half the cube's size
+    RenderResource axisFrames = getAxisFrames();
+    RenderResource cube = getCube(cubeSize_2);
+
+    glm::mat4 modelMat = glm::rotate(glm::mat4(1.0f), (float) M_PI / 4 * 0, glm::vec3(0.0f, 1.0f, 0.0f));
     // Set up the camera
     // NOTE: OpenGL cameras look down the negative z-axis
-    float camPosX = 0.0f;
-    float camPosY = 0.0f;
-    float camPosZ = 150.0f;
-    glm::mat4 viewMat = glm::translate(glm::mat4(1.0f), glm::vec3(-camPosX, -camPosY, -camPosZ));
+    glm::vec3 cameraPos = glm::vec3(3.0f, 1.5f, 3.0f);
+    glm::vec3 cameraFocus = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::mat4 viewMat = glm::lookAt(cameraPos, cameraFocus, cameraUp);
     glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float) screenWidth / (float) screenHeight, 1.0f,
                                          1000.f);
-    // Upload the shader uniforms
-    glm::mat4 mvpMat = projMat * viewMat * modelMat;
-    glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, glm::value_ptr(mvpMat));
 
+    simpleShader.use();
+    simpleShader.setMat4("projection", projMat);
+    simpleShader.setMat4("view", viewMat);
 
-    // Wait for the user to quit
+    withColorShader.use();
+    withColorShader.setMat4("projection", projMat);
+    withColorShader.setMat4("view", viewMat);
+
+    // Main loop
     bool quit = false;
     while (!(quit || *gameEnds)) {
         SDL_Event event;
@@ -627,27 +679,32 @@ void displayThread(const bool *gameEnds) {
                 quit = true;
             }
         }
+
+        // Update scene
         float timeValue = SDL_GetTicks() / 1000.0f;
-        float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
-        printf("%.2f\n", greenValue);
-        glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+        float greenValue = (sin(timeValue) / 10.0f) + 0.5f;
 
         render_status = updateRenderStatus(render_status);
         display();
 
-        glDrawElements(GL_TRIANGLES, numIndices, GL_UNSIGNED_SHORT, (GLvoid *) nullptr);
+        // Render
+        simpleShader.use();
+        modelMat = glm::rotate(modelMat, (float) M_PI / 4 / FPS, glm::vec3(0.0f, 1.0f, 0.0f));
+        simpleShader.setMat4("model", modelMat);
+        simpleShader.setVec4("uniformColor", glm::vec4(0.0f, greenValue, 0.0f, 1.0f));
+        cube.draw();
+
+        withColorShader.use();
+        withColorShader.setMat4("model", glm::identity<glm::mat4>());
+        axisFrames.draw();
+
         SDL_GL_SwapWindow(window);
         SDL_Delay(1000 / FPS);
     }
 
     // Clean up
-    vboFree(triangleVBO);
-    triangleVBO = 0;
-    shaderProgDestroy(shaderProg);
-    shaderProg = 0;
-    iboFree(ibo);
-    ibo = 0;
-
+    cube.free();
+    axisFrames.free();
 
     SDL_DestroyWindow(window);
     SDL_DestroyRenderer(renderer);

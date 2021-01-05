@@ -12,3 +12,4 @@ Makefile.win
 *.o
 *.exe
 *.css
+/cmake-build-debug/

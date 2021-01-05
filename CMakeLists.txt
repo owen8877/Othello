@@ -20,6 +20,6 @@ find_package(glm REQUIRED)
 file(GLOB Othello_src "*.h" "*.cpp")
 list(FILTER Othello_src EXCLUDE REGEX "Othello_submit.cpp")
 
-add_executable(Othello ${Othello_src} shader.h shader.cpp)
+add_executable(Othello ${Othello_src} shader/shader.h)
 target_link_libraries(Othello SDL2::SDL2 Threads::Threads ${GLES3_LIBRARY} glm)
 target_include_directories(Othello PUBLIC ${GLES3_INCLUDE_DIR})
