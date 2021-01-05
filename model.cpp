@@ -9,7 +9,7 @@
 using namespace std;
 
 extern bool isFocus;
-extern GLfloat fogColorFocus [];
+extern GLfloat fogColorFocus[];
 extern float fogDensity;
 extern double theta, fai;
 
@@ -20,12 +20,12 @@ clock_t starttime;
 int liftingTableTime = 0;
 double emulateTimes = 5.0;
 
-inline double exponent_coeffiency(double z){
+inline double exponent_coeffiency(double z) {
     if (abs(z - STONE_RADIUS) < 0.1) return (1.0 - 100 * (z - STONE_RADIUS) * (z - STONE_RADIUS));
     return 0.0;
 }
 
-Stone::Stone(Piece p){
+Stone::Stone(Piece p) {
     color = p.getStatus();
     x = (p.getY() - BOARD_SIZE / 2.0 - 0.5) * STONE_INTERVAL;
     y = (BOARD_SIZE / 2.0 + 0.5 - p.getX()) * STONE_INTERVAL;
@@ -36,7 +36,7 @@ Stone::Stone(Piece p){
     axisz = 1.0;
 }
 
-void Stone::fly(){
+void Stone::fly() {
     z = STONE_RADIUS + TABLE_HEIGHT + TABLE_THICKNESS / 2;
     double rm = RAND_MAX;
     vx = 60.0 * rand() / rm - 30.0;
@@ -48,7 +48,7 @@ void Stone::fly(){
     axisz = rand() / rm;
 }
 
-void Stone::move(double dt){
+void Stone::move(double dt) {
     x += vx * dt;
     y += vy * dt;
     z += vz * dt;
@@ -58,107 +58,121 @@ void Stone::move(double dt){
     if ((abs(x) < TABLE_SIZE / 2) && (abs(y) < TABLE_SIZE / 2)) {
         if (z < STONE_RADIUS + TABLE_HEIGHT + TABLE_THICKNESS / 2) {
             z = 2 * (STONE_RADIUS + TABLE_HEIGHT + TABLE_THICKNESS / 2) - z;
-            vz = - vz * RESTITUTION;
-            vangle = - vangle * RESTITUTION;
+            vz = -vz * RESTITUTION;
+            vangle = -vangle * RESTITUTION;
             axisz /= 2.0;
         }
-    }
-    else {
+    } else {
         double h = STONE_RADIUS * abs(int((angle + 90.0) / 180.0) - angle / 180.0) + STONE_HEIGHT / 2;
         if (z < h) {
             z = 2 * h - z;
-            vz = - vz * RESTITUTION;
-            vangle = - vangle * RESTITUTION;
+            vz = -vz * RESTITUTION;
+            vangle = -vangle * RESTITUTION;
             axisz /= 2.0;
         }
     }
 
 }
 
-void Stone::print(){
+void Stone::print() {
     printf("coordinate : (%lf, %lf, %lf)\nvelocity : (%lf, %lf, %lf)\naxis : (%lf, %lf, %lf)\ncolor : %s\n",
-        x, y, z, vx, vy, vz, axisx, axisy, axisz, (color == Black) ? "Black" : "White");
+           x, y, z, vx, vy, vz, axisx, axisy, axisz, (color == Black) ? "Black" : "White");
 }
 
-void refreshModel(bool lifting){
+void refreshModel(bool lifting) {
     Board b = Game::getBoard();
     stones.clear();
     for (int i = 1; i <= BOARD_SIZE; ++i) {
         for (int j = 1; j <= BOARD_SIZE; ++j) {
-            if ((b.getPiece(i,j).getStatus()==Black) || (b.getPiece(i,j).getStatus()==White)) stones.push_back(Stone(b.getPiece(i, j)));
+            if ((b.getPiece(i, j).getStatus() == Black) || (b.getPiece(i, j).getStatus() == White))
+                stones.push_back(Stone(b.getPiece(i, j)));
             if (!lifting) {
-                if ((b.getPiece(i,j).getStatus() == Valid)
-                    || (b.getPiece(i,j).getStatus() == BlackValid)
-                    || (b.getPiece(i,j).getStatus() == WhiteValid)) stones.push_back(Stone(b.getPiece(i, j)));
+                if ((b.getPiece(i, j).getStatus() == Valid)
+                    || (b.getPiece(i, j).getStatus() == BlackValid)
+                    || (b.getPiece(i, j).getStatus() == WhiteValid))
+                    stones.push_back(Stone(b.getPiece(i, j)));
             }
         }
     }
 }
 
-// Timer Callback
-void timerCallback(int index){
-    switch (index) {
-        case 0: //Idle
+int updateRenderStatus(int status) {
+    switch (status) {
+        case 0: // Idle
             theta = -90.5f;
             fai = 20.0f;
             if (Game::getGameStatus() != Playing) {
-                glutTimerFunc(1000 / FPS, &timerCallback, 0);
+                status = 0;
+            } else {
+                status = 1;
             }
-            else glutTimerFunc(1000 / FPS, &timerCallback, 1);
             break;
-        case 1: //Playing
-            glutSetCursor(GLUT_CURSOR_NONE);
+        case 1: // Playing
+            SDL_ShowCursor(SDL_DISABLE);
             refreshModel(false);
-            if (Game::getGameStatus() == Playing) {
-                glutTimerFunc(1000 / FPS, &timerCallback, 1);
+            switch (Game::getGameStatus()) {
+                case Playing:
+                    status = 1;
+                    break;
+                case Pause:
+                    status = 2;
+                    break;
+                case Lifting:
+                    status = 3;
+                    break;
+                default:
+                    status = 0;
             }
-            else if (Game::getGameStatus() == Pause) glutTimerFunc(1000 / FPS, &timerCallback, 2);
-            else if (Game::getGameStatus() == Lifting) glutTimerFunc(1000 / FPS, &timerCallback, 3);
-            else glutTimerFunc(1000 / FPS, &timerCallback, 0);
             break;
-        case 2: //Pausing...
-            glutSetCursor(GLUT_CURSOR_INHERIT);
-            if (Game::getGameStatus() == Playing) {
-                glutTimerFunc(1000 / FPS, &timerCallback, 1);
+        case 2: // Pausing...
+            SDL_ShowCursor(SDL_ENABLE);
+            switch (Game::getGameStatus()) {
+                case Playing:
+                    status = 1;
+                    break;
+                case Pause:
+                    status = 2;
+                    break;
+                default:
+                    status = 0;
             }
-            else if (Game::getGameStatus() == Pause) glutTimerFunc(1000 / FPS, &timerCallback, 2);
-            else glutTimerFunc(1000 / FPS, &timerCallback, 0);
             break;
         case 3: //Preparing to lift
-            glutSetCursor(GLUT_CURSOR_INHERIT);
-            glutTimerFunc(1000 / FPS, &timerCallback, 4);
+            SDL_ShowCursor(SDL_ENABLE);
+            status = 4;
             refreshModel(true);
-            for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it)
-                (*it).fly();
-            break;
-        case 4: //Lifting
-            if (Game::getGameStatus() == Lifting) {
-                glutTimerFunc(1000 / FPS, &timerCallback, 4);
+            for (auto & stone : stones) {
+                stone.fly();
             }
-            else  {
-                glutTimerFunc(1000 / FPS, &timerCallback, 0);
-                return;
+            break;
+        case 4: // Lifting
+        default:
+            if (Game::getGameStatus() == Lifting) {
+                status = 4;
+            } else {
+                status = 0;
             }
             starttime = clock();
 
             if (isFocus) {
                 fogDensity = fogDensity * 0.9 + 0.05 * 0.1;
                 emulateTimes = emulateTimes * 0.9 + 5 * 0.1;
-            }
-            else {
+            } else {
                 fogDensity = fogDensity * 0.9;
                 emulateTimes = emulateTimes * 0.9 + 30 * 0.1;
             }
 
-            for (int i = 0; i < emulateTimes; ++i)
-                for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it)
-                    (*it).move(TIME_UNIT);
+            for (int i = 0; i < emulateTimes; ++i) {
+                for (auto &stone : stones) {
+                    stone.move(TIME_UNIT);
+                }
+            }
 
             double x = 0.0, y = 0.0, z = 0.0;
-            for (vector<Stone>::iterator it = stones.begin(); it != stones.end(); ++it) {
-                x += (*it).getX();
-                y += (*it).getY();
-                z += (*it).getZ();
+            for (auto & stone : stones) {
+                x += stone.getX();
+                y += stone.getY();
+                z += stone.getZ();
             }
             xcenter = x / stones.size() * lambda + xcenter * (1 - lambda);
             ycenter = y / stones.size() * lambda + ycenter * (1 - lambda);
@@ -175,5 +189,5 @@ void timerCallback(int index){
             }
             break;
     }
-    glutPostRedisplay();
+    return status;
 }

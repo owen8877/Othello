@@ -4,7 +4,6 @@
 #include "element.h"
 #include "base.h"
 #include <vector>
-#include <GL/freeglut.h>
 
 class Stone{
 private:

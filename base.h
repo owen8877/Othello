@@ -7,6 +7,9 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <SDL2/SDL.h>
+#include <GLES3/gl3.h>
+
 using namespace std;
 
 const bool BLACK_SIDE = true;

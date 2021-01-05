@@ -80,7 +80,7 @@
 
 ~~**再强调一遍，这不是演习！**~~
 * 当用户认为棋局对自己不利时，而且处于 `Playing` 状态时，按下 `l` 键将进入本状态；
-* 在本状态时，主要是由 `void timerCallback(int)(model.cpp:99)` 负责刷新棋子状态并调用绘图函数刷新屏幕内容；
+* 在本状态时，主要是由 `void updateRenderStatus(int)(model.cpp:99)` 负责刷新棋子状态并调用绘图函数刷新屏幕内容；
 * 默认 10 秒后自动转移到 `End` 状态；
 
 ### `Recovery` 状态
