@@ -108,7 +108,8 @@ int updateRenderStatus(int status) {
             }
             break;
         case 1: // Playing
-            SDL_ShowCursor(SDL_DISABLE);
+        // TODO
+//            SDL_ShowCursor(SDL_DISABLE);
             refreshModel(false);
             switch (Game::getGameStatus()) {
                 case Playing:
@@ -125,7 +126,8 @@ int updateRenderStatus(int status) {
             }
             break;
         case 2: // Pausing...
-            SDL_ShowCursor(SDL_ENABLE);
+            // TODO
+//            SDL_ShowCursor(SDL_ENABLE);
             switch (Game::getGameStatus()) {
                 case Playing:
                     status = 1;
@@ -138,7 +140,8 @@ int updateRenderStatus(int status) {
             }
             break;
         case 3: //Preparing to lift
-            SDL_ShowCursor(SDL_ENABLE);
+            // TODO
+//            SDL_ShowCursor(SDL_ENABLE);
             status = 4;
             refreshModel(true);
             for (auto & stone : stones) {

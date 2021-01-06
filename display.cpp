@@ -10,6 +10,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <boost/format.hpp>
+#include <boost/range/adaptor/indexed.hpp>
+#include "camera.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -28,6 +31,16 @@ char s_Save[] = "Save";
 char s_Load[] = "Load";
 char s_Save_and_Quit[] = "Save and Quit";
 char s_Quit_without_saving[] = "Quit without Saving";
+
+// debugging camera
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+float lastX = screenWidth / 2.0f;
+float lastY = screenHeight / 2.0f;
+bool firstMouse = true;
+
+// timing
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
 
 extern double xcenter, ycenter, zcenter;
 extern vector<Stone> stones;
@@ -587,45 +600,120 @@ RenderResource getAxisFrames() {
     return RenderResource(vertices, indices, GL_LINES); // NOLINT(modernize-return-braced-init-list)
 }
 
-SDL_Window *initWindow() {
-    // Set-up window
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        SDL_Log("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-        throw std::runtime_error("Cannot initialize SDL.");
+struct DirectionalLight {
+    bool enabled = true;
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    void apply(Shader &shader) const {
+        shader.setBool("dirLight.enabled", enabled);
+        shader.setVec3("dirLight.position", direction);
+        shader.setVec3("dirLight.ambient", ambient);
+        shader.setVec3("dirLight.diffuse", diffuse);
+        shader.setVec3("dirLight.specular", specular);
     }
+};
 
-    // Setup the exit hook
-    atexit(SDL_Quit);
+struct PointLight {
+    bool enabled = true;
+    glm::vec3 position;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
 
-    // Request OpenGL ES 2.0
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-
-    // Create the window
-    SDL_Window *window = SDL_CreateWindow("Othello", 50, 50, screenSize, screenSize,
-                                          SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (!window) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "Couldn't create the main window.", nullptr);
-        throw std::runtime_error("Couldn't create the main window.");
+    void apply(Shader &shader, int index) const {
+        using namespace boost;
+        shader.setBool((format("pointLights[%1%].enabled") % index).str(), enabled);
+        shader.setVec3((format("pointLights[%1%].position") % index).str(), position);
+        shader.setVec3((format("pointLights[%1%].ambient") % index).str(), ambient);
+        shader.setVec3((format("pointLights[%1%].diffuse") % index).str(), diffuse);
+        shader.setVec3((format("pointLights[%1%].specular") % index).str(), specular);
+        shader.setFloat((format("pointLights[%1%].constant") % index).str(), constant);
+        shader.setFloat((format("pointLights[%1%].linear") % index).str(), linear);
+        shader.setFloat((format("pointLights[%1%].quadratic") % index).str(), quadratic);
     }
+};
 
-    return window;
+struct SpotLight {
+    bool enabled = true;
+    glm::vec3 position;
+    glm::vec3 direction;
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float constant;
+    float linear;
+    float quadratic;
+    float cutOff;
+    float outerCutOff;
+
+    void apply(Shader &shader) const {
+        shader.setBool("spotLight.enabled", enabled);
+        shader.setVec3("spotLight.position", position);
+        shader.setVec3("spotLight.direction", direction);
+        shader.setVec3("spotLight.ambient", ambient);
+        shader.setVec3("spotLight.diffuse", diffuse);
+        shader.setVec3("spotLight.specular", specular);
+        shader.setFloat("spotLight.constant", constant);
+        shader.setFloat("spotLight.linear", linear);
+        shader.setFloat("spotLight.quadratic", quadratic);
+        shader.setFloat("spotLight.cutOff", cutOff);
+        shader.setFloat("spotLight.outerCutOff", outerCutOff);
+    }
+};
+
+
+// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
+// ---------------------------------------------------------------------------------------------------------
+void processInput(GLFWwindow *window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(RIGHT, deltaTime);
 }
 
-SDL_Renderer *initRenderer(SDL_Window *window) {
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (renderer == nullptr) {
-        SDL_Log("Could not create a renderer: %s", SDL_GetError());
-        throw std::runtime_error("Could not create a renderer.");
-    }
-    return renderer;
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+    // make sure the viewport matches the new window dimensions; note that width and
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
 }
 
-void setSDLAttribute() {
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+// glfw: whenever the mouse moves, this callback is called
+// -------------------------------------------------------
+void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
+// glfw: whenever the mouse scroll wheel scrolls, this callback is called
+// ----------------------------------------------------------------------
+void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
+    camera.ProcessMouseScroll(yoffset);
 }
 
 void displayThread(const bool *gameEnds) {
@@ -649,11 +737,43 @@ void displayThread(const bool *gameEnds) {
     // glutTimerFunc(0, &updateRenderStatus, 0);done
     // glutMainLoop();deprecated
 
-    SDL_Window *window = initWindow();
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    SDL_Renderer *renderer = initRenderer(window);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
-    setSDLAttribute();
+    // glfw window creation
+    // --------------------
+    GLFWwindow *window;
+    window = glfwCreateWindow(screenWidth, screenHeight, "Othello", nullptr, nullptr);
+    if (window == nullptr) {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
+
+    // tell GLFW to capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    // glad: load all OpenGL function pointers
+    // ---------------------------------------
+//    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+//    {
+//        std::cout << "Failed to initialize GLAD" << std::endl;
+//        return -1;
+//    }
+
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
 
     int render_status = 0;
 
@@ -670,108 +790,131 @@ void displayThread(const bool *gameEnds) {
     RenderResource light = getCube(0.2f);
 
     glm::mat4 modelMat = glm::rotate(glm::mat4(1.0f), (float) M_PI / 4 * 0, glm::vec3(0.0f, 1.0f, 0.0f));
-    // Set up the camera
-    // NOTE: OpenGL cameras look down the negative z-axis
-    glm::vec3 cameraPos = glm::vec3(3.0f, 0.4f, 3.0f);
-    glm::vec3 cameraFocus = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::mat4 viewMat = glm::lookAt(cameraPos, cameraFocus, cameraUp);
-    glm::mat4 projMat = glm::perspective(glm::radians(60.0f), (float) screenWidth / (float) screenHeight, 1.0f,
-                                         1000.f);
 
-    // positions of the point lights
-    glm::vec3 pointLightPositions[] = {
-            glm::vec3(0.7f, 0.2f, 2.0f),
-            glm::vec3(2.3f, -3.3f, -4.0f),
-            glm::vec3(-4.0f, 2.0f, -12.0f),
-            glm::vec3(0.0f, 0.0f, -3.0f),
+    glm::vec3 cubePositions[] = {
+            glm::vec3( 0.0f,  0.0f,  0.0f),
+            glm::vec3( 2.0f,  5.0f, -15.0f),
+            glm::vec3(-1.5f, -2.2f, -2.5f),
+            glm::vec3(-3.8f, -2.0f, -12.3f),
+            glm::vec3( 2.4f, -0.4f, -3.5f),
+            glm::vec3(-1.7f,  3.0f, -7.5f),
+            glm::vec3( 1.3f, -2.0f, -2.5f),
+            glm::vec3( 1.5f,  2.0f, -2.5f),
+            glm::vec3( 1.5f,  0.2f, -1.5f),
+            glm::vec3(-1.3f,  1.0f, -1.5f)
     };
-    auto lightModelMat = glm::mat4(1.0f);
-    lightModelMat = glm::translate(lightModelMat, pointLightPositions[0]);
-    lightModelMat = glm::scale(lightModelMat, glm::vec3(0.3f));
+
+    DirectionalLight directionalLight = {
+            .direction {-0.2f, -1.0f, -0.3f},
+            .ambient {0.05f, 0.05f, 0.05f},
+            .diffuse {0.4f, 0.4f, 0.4f},
+            .specular {0.5f, 0.5f, 0.5f},
+    };
+
+    vector<PointLight> pointLights = {
+            {
+                    .position {0.7f, 0.2f, 2.0f},
+                    .ambient {0.05f, 0.05f, 0.05f},
+                    .diffuse {0.8f, 0.8f, 0.8f},
+                    .specular {1.0f, 1.0f, 1.0f},
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {
+                    .position {2.3f, -3.3f, -4.0f},
+                    .ambient {0.05f, 0.05f, 0.05f},
+                    .diffuse {0.8f, 0.8f, 0.8f},
+                    .specular {1.0f, 1.0f, 1.0f},
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {
+                    .position {-4.0f, 2.0f, -12.0f},
+                    .ambient {0.05f, 0.05f, 0.05f},
+                    .diffuse {0.8f, 0.8f, 0.8f},
+                    .specular {1.0f, 1.0f, 1.0f},
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {
+                    .position {0.0f, 0.0f, -3.0f},
+                    .ambient {0.05f, 0.05f, 0.05f},
+                    .diffuse {0.8f, 0.8f, 0.8f},
+                    .specular {1.0f, 1.0f, 1.0f},
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+    };
+
+    SpotLight spotLight = {
+            .position {0.0f, 0.0f, 0.0f},
+            .direction {0.0f, 0.0f, 0.0f},
+            .ambient {0.0f, 0.0f, 0.0f},
+            .diffuse {1.0f, 1.0f, 1.0f},
+            .specular {1.0f, 1.0f, 1.0f},
+            .constant = 1.0f,
+            .linear = 0.09f,
+            .quadratic = 0.032,
+            .cutOff = glm::cos(glm::radians(12.5f)),
+            .outerCutOff = glm::cos(glm::radians(15.0f)),
+    };
 
     lightShader.use();
-//    lightShader.setInt("material.diffuse", 0);
-//    lightShader.setInt("material.specular", 1);
-    lightShader.setVec3("viewPos", cameraPos);
     lightShader.setFloat("material.shininess", 32.0f);
     // directional light
-    lightShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    lightShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-    lightShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-    // point light 1
-    lightShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-    lightShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-    lightShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-    lightShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-    lightShader.setFloat("pointLights[0].constant", 1.0f);
-    lightShader.setFloat("pointLights[0].linear", 0.09);
-    lightShader.setFloat("pointLights[0].quadratic", 0.032);
-    // point light 2
-    lightShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-    lightShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-    lightShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-    lightShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-    lightShader.setFloat("pointLights[1].constant", 1.0f);
-    lightShader.setFloat("pointLights[1].linear", 0.09);
-    lightShader.setFloat("pointLights[1].quadratic", 0.032);
-    // point light 3
-    lightShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-    lightShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-    lightShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-    lightShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-    lightShader.setFloat("pointLights[2].constant", 1.0f);
-    lightShader.setFloat("pointLights[2].linear", 0.09);
-    lightShader.setFloat("pointLights[2].quadratic", 0.032);
-    // point light 4
-    lightShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-    lightShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-    lightShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-    lightShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-    lightShader.setFloat("pointLights[3].constant", 1.0f);
-    lightShader.setFloat("pointLights[3].linear", 0.09);
-    lightShader.setFloat("pointLights[3].quadratic", 0.032);
+    directionalLight.apply(lightShader);
+    // point light
+    for (auto const &pointLight : pointLights | boost::adaptors::indexed(0)) {
+        pointLight.value().apply(lightShader, pointLight.index());
+    }
     // spotLight
-    lightShader.setVec3("spotLight.position", cameraPos);
-    lightShader.setVec3("spotLight.direction", cameraFocus - cameraPos);
-    lightShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-    lightShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-    lightShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-    lightShader.setFloat("spotLight.constant", 1.0f);
-    lightShader.setFloat("spotLight.linear", 0.09);
-    lightShader.setFloat("spotLight.quadratic", 0.032);
-    lightShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    lightShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(15.0f)));
-
-    lightShader.setMat4("projection", projMat);
-    lightShader.setMat4("view", viewMat);
+    spotLight.apply(lightShader);
 
     unsigned int diffuseMap = loadTexture(boost::filesystem::path("resources/textures/container.png").c_str());
-    unsigned int specularMap = loadTexture(boost::filesystem::path("resources/textures/container_specular.png").c_str());
+    unsigned int specularMap = loadTexture(
+            boost::filesystem::path("resources/textures/container_specular.png").c_str());
 
     lightShader.use();
     lightShader.setInt("material.diffuse", 0);
     lightShader.setInt("material.specular", 1);
 
-    simpleShader.use();
-    simpleShader.setMat4("projection", projMat);
-    simpleShader.setMat4("view", viewMat);
-
-    withColorShader.use();
-    withColorShader.setMat4("projection", projMat);
-    withColorShader.setMat4("view", viewMat);
-
     // Main loop
-    bool quit = false;
-    while (!(quit || *gameEnds)) {
-        SDL_Event event;
-        if (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                // User wants to quit
-                quit = true;
-            }
-        }
+    while (!glfwWindowShouldClose(window)) {
+        // per-frame time logic
+        // --------------------
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        // input
+        // -----
+        processInput(window);
+
+        glm::mat4 viewMat = camera.GetViewMatrix();
+        glm::mat4 projMat = glm::perspective(glm::radians(camera.Zoom), (float) screenWidth / (float) screenHeight,
+                                             1.0f,1000.f);
+
+        lightShader.use();
+        lightShader.setVec3("viewPos", camera.Position);
+        spotLight.position = camera.Position;
+        spotLight.direction = camera.Front;
+
+        spotLight.apply(lightShader);
+
+        lightShader.setMat4("projection", projMat);
+        lightShader.setMat4("view", viewMat);
+
+        simpleShader.use();
+        simpleShader.setMat4("projection", projMat);
+        simpleShader.setMat4("view", viewMat);
+
+        withColorShader.use();
+        withColorShader.setMat4("projection", projMat);
+        withColorShader.setMat4("view", viewMat);
 
         // Update scene
         render_status = updateRenderStatus(render_status);
@@ -789,19 +932,35 @@ void displayThread(const bool *gameEnds) {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
 
-        cube.draw();
+        for (auto const& cubePosition : cubePositions | boost::adaptors::indexed(0)) {
+            int i = cubePosition.index();
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i + currentFrame * 20;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            lightShader.setMat4("model", model);
+
+            cube.draw();
+        }
 
         simpleShader.use();
-        simpleShader.setMat4("model", lightModelMat);
-        simpleShader.setVec4("uniformColor", 1.0f, 1.0f, 1.0f, 1.0f);
-        light.draw();
+        for (auto const &pointLight : pointLights) {
+            auto lightModelMat = glm::mat4(1.0f);
+            lightModelMat = glm::translate(lightModelMat, pointLight.position);
+            lightModelMat = glm::scale(lightModelMat, glm::vec3(0.3f));
+            simpleShader.setMat4("model", lightModelMat);
+            simpleShader.setVec4("uniformColor", 1.0f, 1.0f, 1.0f, 1.0f);
+            light.draw();
+        }
 
         withColorShader.use();
         withColorShader.setMat4("model", glm::identity<glm::mat4>());
         axisFrames.draw();
 
-        SDL_GL_SwapWindow(window);
-        SDL_Delay(1000 / FPS);
+        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
+        // -------------------------------------------------------------------------------
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
 
     // Clean up
@@ -809,7 +968,7 @@ void displayThread(const bool *gameEnds) {
     axisFrames.free();
     light.free();
 
-    SDL_DestroyWindow(window);
-    SDL_DestroyRenderer(renderer);
-    SDL_Quit();
+    // glfw: terminate, clearing all previously allocated GLFW resources.
+    // ------------------------------------------------------------------
+    glfwTerminate();
 }

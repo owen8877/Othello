@@ -7,8 +7,10 @@ set(CMAKE_CXX_STANDARD 14)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# SDL2
-find_package(SDL2 REQUIRED)
+# GLFW
+find_package(PkgConfig REQUIRED)
+pkg_search_module(GLFW REQUIRED glfw3)
+include_directories(${GLFW_INCLUDE_DIRS})
 
 # OpenGL ES
 find_path(GLES3_INCLUDE_DIR GLES3/gl3.h)
@@ -20,6 +22,6 @@ find_package(glm REQUIRED)
 file(GLOB Othello_src "*.h" "*.cpp")
 list(FILTER Othello_src EXCLUDE REGEX "Othello_submit.cpp")
 
-add_executable(Othello ${Othello_src} shader/shader.h)
-target_link_libraries(Othello SDL2::SDL2 Threads::Threads ${GLES3_LIBRARY} glm)
+add_executable(Othello ${Othello_src} shader/shader.h camera.h)
+target_link_libraries(Othello ${GLFW_LIBRARIES} Threads::Threads ${GLES3_LIBRARY} glm)
 target_include_directories(Othello PUBLIC ${GLES3_INCLUDE_DIR})

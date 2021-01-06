@@ -7,8 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <SDL2/SDL.h>
-#include <GLES3/gl3.h>
+#include <GLFW/glfw3.h>
 
 using namespace std;
 
