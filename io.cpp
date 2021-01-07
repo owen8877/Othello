@@ -151,7 +151,7 @@ int settings(){
         printf(" 3.Input by GUI\t\t%s\n", Settings::inputMehod ? ON : OFF);
         printf(" 4.Ctrl bullet time\t%s\n", Settings::btCtrl ? ON : OFF);
         printf(" 5.Shift bullet time\t%s\n", Settings::btShift ? ON : OFF);
-        printf(" 6.Fancy Lights\t\t%s\n", Settings::fancyLights ? ON : OFF);
+        printf(" 6.Fancy updateLights\t\t%s\n", Settings::fancyLights ? ON : OFF);
         printf(" 7.Show Axises\t\t%s\n", Settings::showAxis ? ON : OFF);
         printf("\n");
         printf("-1.Back\n");

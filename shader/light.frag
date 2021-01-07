@@ -55,9 +55,9 @@ in vec3 normal;
 in vec2 texCoords;
 
 uniform vec3 viewPos;
-uniform DirLight dirLight;
+uniform DirLight dirLights[NR_POINT_LIGHTS];
 uniform PointLight pointLights[NR_POINT_LIGHTS];
-uniform SpotLight spotLight;
+uniform SpotLight spotLights[NR_POINT_LIGHTS];
 uniform Material material;
 
 // function prototypes
@@ -78,14 +78,19 @@ void main() {
     // per lamp. In the main() function we take all the calculated colors and sum them up for
     // this fragment's final color.
     // =======================================================
+    vec3 result = vec3(0);
     // phase 1: directional lighting
-    vec3 result = CalcDirLight(dirLight, norm, viewDir);
+    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+        result += CalcDirLight(dirLights[i], norm, viewDir);
+    }
     // phase 2: point lights
     for (int i = 0; i < NR_POINT_LIGHTS; i++) {
         result += CalcPointLight(pointLights[i], norm, fragPos, viewDir);
     }
     // phase 3: spot light
-    result += CalcSpotLight(spotLight, norm, fragPos, viewDir);
+    for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+        result += CalcSpotLight(spotLights[i], norm, fragPos, viewDir);
+    }
 
     fragColor = vec4(result, 1.0);
 }

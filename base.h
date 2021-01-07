@@ -8,6 +8,9 @@
 #include <unistd.h>
 
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
 
@@ -28,7 +31,7 @@ const double STONE_HEIGHT = 0.2;
 const int TABLE_SIZE = 10;
 const int TABLE_HEIGHT = 3;
 const double TABLE_THICKNESS = 0.7;
-const int FLOOR_SIZE = 45;
+const int FLOOR_SIZE = 10;
 const int FLOOR_SHADE_SIZE = 5;
 const int FLOOR_CENTER_SIZE = (2 * FLOOR_SHADE_SIZE);
 const double FLOOR_GRID_SIZE = 0.25;

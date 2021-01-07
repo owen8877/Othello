@@ -90,7 +90,7 @@ sudo apt-get install libglu1-mesa-dev
 | 3. Input by GUI         | 图形界面鼠标输入        | 控制台界面键盘输入     |
 | 4. Ctrl bullet time     | 按住Ctrl键进入子弹时间  | 使Ctrl键的操作无效     |
 | 5. Shift bullet time    | 按住Shift键进入子弹时间 | 使Shift键的操作无效    |
-| 6. Fancy Lights         | 图形界面中开启炫酷灯光  | 图形界面中关闭炫酷灯光 |
+| 6. Fancy updateLights         | 图形界面中开启炫酷灯光  | 图形界面中关闭炫酷灯光 |
 | 7. Show Axises          | 图形界面中显示坐标轴    | 图形界面中不显示坐标轴 |
 
 * 键入`-1`以回到先前的位置。
