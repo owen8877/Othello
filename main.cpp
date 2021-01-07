@@ -17,12 +17,17 @@ int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
     loadSettings();
-
     bool gameEnds = false;
+
+#ifdef EMSCRIPTEN
+    displayThread(&gameEnds);
+#else
     display_t = thread(displayThread, &gameEnds);
     while (Othello_main(argc, argv)) {}
     gameEnds = true;
     display_t.join();
+#endif
+
     return 0;
 }
 

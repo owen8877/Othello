@@ -13,3 +13,4 @@ Makefile.win
 *.exe
 *.css
 /cmake-build-debug/
+bin-em/

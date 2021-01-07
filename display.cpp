@@ -19,7 +19,7 @@ int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 
 double zoom = DEFAULT_ZOOM;
 double theta = -95.5, fai = 20.0;
 double floatingx = 0.0, floatingy = 0.0;
-float backGroundColor = 0.104;
+float backGroundColor = 0.304;
 float fogDensity = 0.00f;
 bool isFocus = false;
 GLfloat fogColorPause[] = {backGroundColor, backGroundColor, backGroundColor, 1.0f};
@@ -97,8 +97,8 @@ void getTextureMap(vector<unsigned int> &mapId);
 
 void initLights() {
     glm::vec3 ambient = {0.25f, 0.25f, 0.25f};
-    glm::vec3 diffuse = {0.8f, 0.8f, 0.8f};
-    glm::vec3 specular = {0.7f, 0.7f, 0.7f};
+    glm::vec3 diffuse = {0.7f, 0.7f, 0.7f};
+    glm::vec3 specular = {0.4f, 0.4f, 0.4f};
     directionalLights = {
             {
                     .direction {0.0f, 0.0f, -1.0f},
@@ -275,7 +275,7 @@ void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
     camera.ProcessMouseScroll(yoffset);
 }
 
-void reshape_callback(GLFWwindow *window, int width, int height) {
+void reshape_core(int width, int height) {
     screenSize = min(width, height);
     screenWidth = width;
     screenHeight = height;
@@ -283,6 +283,11 @@ void reshape_callback(GLFWwindow *window, int width, int height) {
     float lr_ratio = (float) screenWidth / (float) screenSize;
     float bt_ratio = (float) screenHeight / (float) screenSize;
     projMat = glm::frustum(-lr_ratio, lr_ratio, -bt_ratio, bt_ratio, 1.0f, 1000.0f);
+}
+
+void reshape_callback(GLFWwindow *window, int width, int height) {
+    puts("Resized!");
+    reshape_core(width, height);
 }
 
 // Render
@@ -470,25 +475,20 @@ struct Vertex_C {
 struct RenderResource {
     GLuint vao{};
     GLuint vbo{};
-    GLuint ibo{};
     GLenum mode;
     int drawCount{};
 
     RenderResource() = delete;
 
-    RenderResource(const vector<Vertex_NT> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+    RenderResource(const vector<Vertex_NT> &vertices, GLenum mode) : mode{mode} {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ibo);
 
         glBindVertexArray(vao);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
-        drawCount = indices.size();
+        drawCount = vertices.size();
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), nullptr);
         glEnableVertexAttribArray(0);
@@ -498,19 +498,15 @@ struct RenderResource {
         glEnableVertexAttribArray(2);
     }
 
-    RenderResource(const vector<Vertex_C> &vertices, const vector<GLushort> &indices, GLenum mode) : mode{mode} {
+    RenderResource(const vector<Vertex_C> &vertices, GLenum mode) : mode{mode} {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
-        glGenBuffers(1, &ibo);
 
         glBindVertexArray(vao);
 
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices[0]) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices[0]) * indices.size(), &indices[0], GL_STATIC_DRAW);
-        drawCount = indices.size();
+        drawCount = vertices.size();
 
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), nullptr);
         glEnableVertexAttribArray(0);
@@ -520,85 +516,74 @@ struct RenderResource {
 
     void draw() const {
         glBindVertexArray(vao);
-        glDrawElements(mode, drawCount, GL_UNSIGNED_SHORT, nullptr);
+        glDrawArrays(mode, 0, drawCount);
     }
 
     void free() {
         glDeleteVertexArrays(1, &vao);
         glDeleteBuffers(1, &vbo);
-        glDeleteBuffers(1, &ibo);
     }
 };
 
 RenderResource getCube(float cubeSize_2) {
     const vector<Vertex_NT> vertices = {
-            {-0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f},
-            {0.5f,  -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 0.0f},
-            {0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 1.0f},
-            {0.5f,  0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 1.0f, 1.0f},
-            {-0.5f, 0.5f,  -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.0f,  0.0f,  -1.0f, 0.0f, 0.0f},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f,  0.0f,  -1.0f}, {0.0f, 0.0f}},
+            {{0.5f,  -0.5f, -0.5f}, {0.0f,  0.0f,  -1.0f}, {1.0f, 0.0f}},
+            {{0.5f,  0.5f,  -0.5f}, {0.0f,  0.0f,  -1.0f}, {1.0f, 1.0f}},
+            {{0.5f,  0.5f,  -0.5f}, {0.0f,  0.0f,  -1.0f}, {1.0f, 1.0f}},
+            {{-0.5f, 0.5f,  -0.5f}, {0.0f,  0.0f,  -1.0f}, {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f,  0.0f,  -1.0f}, {0.0f, 0.0f}},
 
-            {-0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f},
-            {0.5f,  -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 0.0f},
-            {0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f},
-            {0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f, 1.0f},
-            {-0.5f, 0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f,  0.0f,  0.0f,  1.0f,  0.0f, 0.0f},
+            {{-0.5f, -0.5f, 0.5f},  {0.0f,  0.0f,  1.0f},  {0.0f, 0.0f}},
+            {{0.5f,  -0.5f, 0.5f},  {0.0f,  0.0f,  1.0f},  {1.0f, 0.0f}},
+            {{0.5f,  0.5f,  0.5f},  {0.0f,  0.0f,  1.0f},  {1.0f, 1.0f}},
+            {{0.5f,  0.5f,  0.5f},  {0.0f,  0.0f,  1.0f},  {1.0f, 1.0f}},
+            {{-0.5f, 0.5f,  0.5f},  {0.0f,  0.0f,  1.0f},  {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.5f},  {0.0f,  0.0f,  1.0f},  {0.0f, 0.0f}},
 
-            {-0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 0.0f},
-            {-0.5f, 0.5f,  -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 0.0f},
-            {-0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, -1.0f, 0.0f,  0.0f,  1.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 1.0f},
-            {-0.5f, 0.5f,  0.5f,  -1.0f, 0.0f,  0.0f,  0.0f, 0.0f},
+            {{-0.5f, 0.5f,  0.5f},  {-1.0f, 0.0f,  0.0f},  {0.0f, 0.0f}},
+            {{-0.5f, 0.5f,  -0.5f}, {-1.0f, 0.0f,  0.0f},  {1.0f, 0.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f,  0.0f},  {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f,  0.0f},  {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.5f},  {-1.0f, 0.0f,  0.0f},  {0.0f, 1.0f}},
+            {{-0.5f, 0.5f,  0.5f},  {-1.0f, 0.0f,  0.0f},  {0.0f, 0.0f}},
 
-            {0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f},
-            {0.5f,  0.5f,  -0.5f, 1.0f,  0.0f,  0.0f,  1.0f, 0.0f},
-            {0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  1.0f, 1.0f},
-            {0.5f,  -0.5f, -0.5f, 1.0f,  0.0f,  0.0f,  1.0f, 1.0f},
-            {0.5f,  -0.5f, 0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f},
-            {0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f},
+            {{0.5f,  0.5f,  0.5f},  {1.0f,  0.0f,  0.0f},  {0.0f, 0.0f}},
+            {{0.5f,  0.5f,  -0.5f}, {1.0f,  0.0f,  0.0f},  {1.0f, 0.0f}},
+            {{0.5f,  -0.5f, -0.5f}, {1.0f,  0.0f,  0.0f},  {1.0f, 1.0f}},
+            {{0.5f,  -0.5f, -0.5f}, {1.0f,  0.0f,  0.0f},  {1.0f, 1.0f}},
+            {{0.5f,  -0.5f, 0.5f},  {1.0f,  0.0f,  0.0f},  {0.0f, 1.0f}},
+            {{0.5f,  0.5f,  0.5f},  {1.0f,  0.0f,  0.0f},  {0.0f, 0.0f}},
 
-            {-0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f, 0.0f},
-            {0.5f,  -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  1.0f, 0.0f},
-            {0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f, 1.0f},
-            {0.5f,  -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  1.0f, 1.0f},
-            {-0.5f, -0.5f, 0.5f,  0.0f,  -1.0f, 0.0f,  0.0f, 1.0f},
-            {-0.5f, -0.5f, -0.5f, 0.0f,  -1.0f, 0.0f,  0.0f, 0.0f},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f,  -1.0f, 0.0f},  {0.0f, 0.0f}},
+            {{0.5f,  -0.5f, -0.5f}, {0.0f,  -1.0f, 0.0f},  {1.0f, 0.0f}},
+            {{0.5f,  -0.5f, 0.5f},  {0.0f,  -1.0f, 0.0f},  {1.0f, 1.0f}},
+            {{0.5f,  -0.5f, 0.5f},  {0.0f,  -1.0f, 0.0f},  {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.5f},  {0.0f,  -1.0f, 0.0f},  {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f,  -1.0f, 0.0f},  {0.0f, 0.0f}},
 
-            {-0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f},
-            {0.5f,  0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  1.0f, 0.0f},
-            {0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f},
-            {0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f},
-            {-0.5f, 0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f},
-            {-0.5f, 0.5f,  -0.5f, 0.0f,  1.0f,  0.0f,  0.0f, 0.0f},
+            {{-0.5f, 0.5f,  -0.5f}, {0.0f,  1.0f,  0.0f},  {0.0f, 0.0f}},
+            {{0.5f,  0.5f,  -0.5f}, {0.0f,  1.0f,  0.0f},  {1.0f, 0.0f}},
+            {{0.5f,  0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {1.0f, 1.0f}},
+            {{0.5f,  0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {1.0f, 1.0f}},
+            {{-0.5f, 0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {0.0f, 1.0f}},
+            {{-0.5f, 0.5f,  -0.5f}, {0.0f,  1.0f,  0.0f},  {0.0f, 0.0f}},
     };
 
-    vector<GLushort> indices(36);
-    for (int i = 0; i < indices.size(); ++i) {
-        indices[i] = i;
-    }
-
-    return RenderResource(vertices, indices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
+    return RenderResource(vertices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
 }
 
 RenderResource getFloor(float floorSize) {
     const vector<Vertex_NT> vertices = {
-            {-floorSize / 2, -floorSize / 2, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
-            {floorSize / 2,  -floorSize / 2, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f},
-            {floorSize / 2,  floorSize / 2,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f},
-            {floorSize / 2,  floorSize / 2,  0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f},
-            {-floorSize / 2, floorSize / 2,  0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f},
-            {-floorSize / 2, -floorSize / 2, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+            {{-floorSize / 2, -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+            {{floorSize / 2,  -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+            {{floorSize / 2,  floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{floorSize / 2,  floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-floorSize / 2, floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            {{-floorSize / 2, -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
     };
 
-    vector<GLushort> indices(6);
-    for (int i = 0; i < indices.size(); ++i) {
-        indices[i] = i;
-    }
-
-    return RenderResource(vertices, indices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
+    return RenderResource(vertices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
 }
 
 RenderResource getAxisFrames() {
@@ -611,9 +596,7 @@ RenderResource getAxisFrames() {
             {{1000.0f, 0.0f,    0.0f},    {1.0f, 0.0f, 0.0f}},
     };
 
-    const vector<GLushort> indices = {0, 1, 2, 3, 4, 5};
-
-    return RenderResource(vertices, indices, GL_LINES); // NOLINT(modernize-return-braced-init-list)
+    return RenderResource(vertices, GL_LINES); // NOLINT(modernize-return-braced-init-list)
 }
 
 unsigned int loadTexture(char const *path) {
@@ -624,12 +607,21 @@ unsigned int loadTexture(char const *path) {
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
     if (data) {
         GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
+        switch (nrComponents) {
+            case 1:
+                format = GL_RED;
+                break;
+            case 3:
+                format = GL_RGB;
+                break;
+            case 4:
+                format = GL_RGBA;
+                break;
+            default:
+                cout << "Unexpected number of components " << nrComponents << "!" << endl;
+                stbi_image_free(data);
+                return -1;
+        }
 
         glBindTexture(GL_TEXTURE_2D, textureID);
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
@@ -649,32 +641,9 @@ unsigned int loadTexture(char const *path) {
     return textureID;
 }
 
-enum class TEXTURE {
-    BoxDiffuse, BoxSpecular, CeramicTileDiffuse, Blank, Palette
-};
+std::function<void()> loop;
 
-auto getTextureMap() {
-    vector<std::tuple<TEXTURE, string>> config = {
-            {TEXTURE::BoxDiffuse,         "container.png"},
-            {TEXTURE::BoxSpecular,        "container_specular.png"},
-            {TEXTURE::CeramicTileDiffuse, "ceramic-tile.jpg"},
-            {TEXTURE::Blank,              "black.jpg"},
-            {TEXTURE::Palette,            "palette.png"},
-    };
-
-    int n = config.size();
-    vector<unsigned int> mapId(n);
-
-    for (auto const &t : config | boost::adaptors::indexed(0)) {
-        auto filepath = boost::format("resources/textures/%1%") % get<1>(t.value());
-        auto id = loadTexture(filesystem::path(filepath.str()).c_str());
-        mapId.emplace_back(id);
-        glActiveTexture(GL_TEXTURE0 + t.index());
-        glBindTexture(GL_TEXTURE_2D, id);
-    }
-
-    return mapId;
-}
+void main_loop() { loop(); }
 
 void displayThread(const bool *gameEnds) {
     // glutInit(&argc, argv); dep
@@ -701,9 +670,12 @@ void displayThread(const bool *gameEnds) {
     GLFWwindow *window = initGLFW();
     initOpenGLOptions();
     initLights();
+    reshape_core(screenWidth, screenHeight);
 
     int render_status = 0;
     refreshModel(false);
+
+    printf("Init finished.\n");
 
     // Load shaders, render objects ...
     Shader simpleShader("shader/simple.vert", "shader/simple.frag");
@@ -727,15 +699,34 @@ void displayThread(const bool *gameEnds) {
             glm::vec3(1.5f, 0.2f, -1.5f),
             glm::vec3(-1.3f, 1.0f, -1.5f)
     };
+    printf("Shaders loaded.\n");
 
     // Set-up shaders and textures
     lightShader.use();
     lightShader.setFloat("material.shininess", 32.0f);
 
-    auto mapId = getTextureMap();
+    int boxDiffuseTex, boxSpecularTex, ceramicTileDiffuseTex, blankTex, paletteTex;
+
+    {
+        auto wrapper = [](auto name, int glt) {
+            int id = loadTexture(filesystem::path((boost::format("resources/textures/%1%") % name).str()).c_str());
+            glActiveTexture(glt);
+            glBindTexture(GL_TEXTURE_2D, id);
+            return id;
+        };
+        boxDiffuseTex = wrapper("container.png", GL_TEXTURE0);
+        boxSpecularTex = wrapper("container-specular.png", GL_TEXTURE1);
+        ceramicTileDiffuseTex = wrapper("ceramic-tile.jpg", GL_TEXTURE2);
+        blankTex = wrapper("black.png", GL_TEXTURE3);
+        paletteTex = wrapper("palette.png", GL_TEXTURE4);
+    }
+
+    printf("Textures loaded.\n");
 
     // Main loop
-    while (!glfwWindowShouldClose(window) && !*gameEnds) {
+
+    loop = [&] {
+//        printf("Looping...\n");
         // Per-frame time logic
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
@@ -766,6 +757,9 @@ void displayThread(const bool *gameEnds) {
         lightShader.setMat4("projection", projMat);
         lightShader.setMat4("view", viewMat);
 
+        printf("yaw %.2f, pitch %.2f, position %s\n", camera.Yaw, camera.Pitch,
+               glm::to_string(camera.Position).c_str());
+
         simpleShader.use();
         simpleShader.setMat4("projection", projMat);
         simpleShader.setMat4("view", viewMat);
@@ -789,11 +783,16 @@ void displayThread(const bool *gameEnds) {
 
         // Objects needed to be lightened
         lightShader.use();
+        lightShader.setInt("material.diffuse", 0);
+        lightShader.setInt("material.specular", 1);
 
         // Cubes
         {
-            lightShader.setInt("material.diffuse", static_cast<int>(TEXTURE::BoxDiffuse));
-            lightShader.setInt("material.specular", static_cast<int>(TEXTURE::BoxSpecular));
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, boxDiffuseTex);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, boxSpecularTex);
+
             for (auto const &cubePosition : cubePositions | boost::adaptors::indexed(0)) {
                 int i = cubePosition.index();
                 glm::mat4 model = glm::mat4(1.0f);
@@ -808,8 +807,11 @@ void displayThread(const bool *gameEnds) {
 
         // Floor
         {
-            lightShader.setInt("material.diffuse", static_cast<int>(TEXTURE::CeramicTileDiffuse));
-            lightShader.setInt("material.specular", static_cast<int>(TEXTURE::Blank));
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, ceramicTileDiffuseTex);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, blankTex);
+
             lightShader.setMat4("model", glm::identity<glm::mat4>());
             floor.draw();
         }
@@ -842,7 +844,6 @@ void displayThread(const bool *gameEnds) {
         }
 
         withColorShader.use();
-
         if (Settings::showAxis) {
             withColorShader.setMat4("model", glm::identity<glm::mat4>());
             axisFrames.draw();
@@ -852,7 +853,15 @@ void displayThread(const bool *gameEnds) {
         // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
         glfwPollEvents();
+    };
+
+#ifdef EMSCRIPTEN
+    emscripten_set_main_loop(main_loop, 10, true);
+#else
+    while (!glfwWindowShouldClose(window) && !*gameEnds) {
+        main_loop();
     }
+#endif
 
     // Clean up
     cube.free();

@@ -21,10 +21,10 @@ enum Camera_Movement {
 };
 
 // Default camera values
-const float YAW = 0.0f;
-const float PITCH = 0.0f;
+const float YAW = 100.0f;
+const float PITCH = -30.0f;
 const float SPEED = 2.5f;
-const float SENSITIVITY = 0.1f;
+const float SENSITIVITY = 0.2f;
 const float ZOOM = 45.0f;
 
 
@@ -47,8 +47,8 @@ public:
 
     // constructor with vectors
     explicit Camera(glm::vec3 position = glm::vec3(1.5f, 2.5f, 1.5f), glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f),
-           float yaw = YAW, float pitch = PITCH) : Front(-position), MovementSpeed(SPEED),
-                                                   MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
+                    float yaw = YAW, float pitch = PITCH) : Front(glm::vec3(-1.5f, -2.5f, -1.5f)), MovementSpeed(SPEED),
+                                                            MouseSensitivity(SENSITIVITY), Zoom(ZOOM) {
         Position = position;
         WorldUp = up;
         Yaw = yaw;
@@ -123,12 +123,12 @@ private:
         // calculate the new Front vector
         glm::vec3 front;
         front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-        front.y = - sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+        front.y = -sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
         front.z = sin(glm::radians(Pitch));
         Front = glm::normalize(front);
         // also re-calculate the Right and Up vector
-        Right = glm::normalize(glm::cross(Front,
-                                          WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+        // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+        Right = glm::normalize(glm::cross(Front, WorldUp));
         Up = glm::normalize(glm::cross(Right, Front));
     }
 };

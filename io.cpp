@@ -4,7 +4,6 @@
 #include "io.h"
 #include <fstream>
 #include <cmath>
-#include <GL/freeglut.h>
 
 extern int screenSize, screenHeight, screenWidth;
 extern double theta, fai;
@@ -109,7 +108,14 @@ int loadSettings(){
     ifstream input((fileName).c_str());
     if (!input.is_open()) {
         printf("Cannot open Settings file.\n");
-        return -1;
+        Settings::btCtrl = true;
+        Settings::btShift = false;
+        Settings::fancyLights = true;
+        Settings::inputMehod = false;
+        Settings::pieceAssistance = true;
+        Settings::showAxis = true;
+        Settings::showBigBall = false;
+        return 0;
     }
     input >> Settings::btCtrl;
     input >> Settings::btShift;
@@ -274,45 +280,45 @@ double zoomScale(double zoom, bool zoomOut){
 
 // Mouse Callback
 void mouseKey(int button, int state, int x, int y){
-    if (GLUT_DOWN == state) switch (button) {
-        case GLUT_LEFT_BUTTON:
-            mouseButton |= LEFT_MOUSE_BUTTON;
-            break;
-        case GLUT_MIDDLE_BUTTON:
-            mouseButton |= MIDDLE_MOUSE_BUTTON;
-            break;
-        case GLUT_RIGHT_BUTTON:
-            mouseButton |= RIGHT_MOUSE_BUTTON;
-            break;
-    }
-    else switch (button) {
-        case GLUT_LEFT_BUTTON:
-            mouseButton &= ~LEFT_MOUSE_BUTTON;
-            break;
-        case GLUT_MIDDLE_BUTTON:
-            mouseButton &= ~MIDDLE_MOUSE_BUTTON;
-            break;
-        case GLUT_RIGHT_BUTTON:
-            mouseButton &= ~RIGHT_MOUSE_BUTTON;
-            break;
-    }
-    if (GLUT_WHEEL_DOWN == button) zoom = zoomScale(zoom, true);
-    if (GLUT_WHEEL_UP == button) zoom = zoomScale(zoom, false);
-
-    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
-                (double) (screenHeight/2.0 - y)/screenSize,
-                mouseButton);
-
-    if (Game::getGameStatus() != Playing) return;
-    if (state != GLUT_UP) return;
-    if ((GLUT_WHEEL_DOWN == button)||(GLUT_WHEEL_UP == button)) return;
-
-    int step = (screenSize / BOARD_SIZE);
-
-    yBuffer = (x - screenWidth / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
-    xBuffer = (y - screenHeight / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
-    hasMouseInput = true;
-    return;
+//    if (GLUT_DOWN == state) switch (button) {
+//        case GLUT_LEFT_BUTTON:
+//            mouseButton |= LEFT_MOUSE_BUTTON;
+//            break;
+//        case GLUT_MIDDLE_BUTTON:
+//            mouseButton |= MIDDLE_MOUSE_BUTTON;
+//            break;
+//        case GLUT_RIGHT_BUTTON:
+//            mouseButton |= RIGHT_MOUSE_BUTTON;
+//            break;
+//    }
+//    else switch (button) {
+//        case GLUT_LEFT_BUTTON:
+//            mouseButton &= ~LEFT_MOUSE_BUTTON;
+//            break;
+//        case GLUT_MIDDLE_BUTTON:
+//            mouseButton &= ~MIDDLE_MOUSE_BUTTON;
+//            break;
+//        case GLUT_RIGHT_BUTTON:
+//            mouseButton &= ~RIGHT_MOUSE_BUTTON;
+//            break;
+//    }
+//    if (GLUT_WHEEL_DOWN == button) zoom = zoomScale(zoom, true);
+//    if (GLUT_WHEEL_UP == button) zoom = zoomScale(zoom, false);
+//
+//    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
+//                (double) (screenHeight/2.0 - y)/screenSize,
+//                mouseButton);
+//
+//    if (Game::getGameStatus() != Playing) return;
+//    if (state != GLUT_UP) return;
+//    if ((GLUT_WHEEL_DOWN == button)||(GLUT_WHEEL_UP == button)) return;
+//
+//    int step = (screenSize / BOARD_SIZE);
+//
+//    yBuffer = (x - screenWidth / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
+//    xBuffer = (y - screenHeight / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
+//    hasMouseInput = true;
+//    return;
 }
 
 //Mouse Passive Callback
@@ -351,31 +357,31 @@ void keyboardUpCallback(unsigned char key, int x, int y){
 
 // SpecialKeyboard Callback
 void skeyboardCallback(int key, int _x, int _y){
-    switch (key) {
-        case GLUT_KEY_CTRL_L:
-        case GLUT_KEY_CTRL_R:
-            kbstat['\x11'] = 1;
-            break;
-        case GLUT_KEY_SHIFT_L:
-        case GLUT_KEY_SHIFT_R:
-            kbstat['\x0F'] = 1;
-            break;
-    }
-    update();
+//    switch (key) {
+//        case GLUT_KEY_CTRL_L:
+//        case GLUT_KEY_CTRL_R:
+//            kbstat['\x11'] = 1;
+//            break;
+//        case GLUT_KEY_SHIFT_L:
+//        case GLUT_KEY_SHIFT_R:
+//            kbstat['\x0F'] = 1;
+//            break;
+//    }
+//    update();
 }
 
 void skeyboardUpCallback(int key, int x, int y){
-    switch (key) {
-        case GLUT_KEY_CTRL_L:
-        case GLUT_KEY_CTRL_R:
-            kbstat['\x11'] = 0;
-            break;
-        case GLUT_KEY_SHIFT_L:
-        case GLUT_KEY_SHIFT_R:
-            kbstat['\x0F'] = 0;
-            break;
-    }
-    update();
+//    switch (key) {
+//        case GLUT_KEY_CTRL_L:
+//        case GLUT_KEY_CTRL_R:
+//            kbstat['\x11'] = 0;
+//            break;
+//        case GLUT_KEY_SHIFT_L:
+//        case GLUT_KEY_SHIFT_R:
+//            kbstat['\x0F'] = 0;
+//            break;
+//    }
+//    update();
 }
 
 //For Mouse Input

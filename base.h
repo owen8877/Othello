@@ -1,15 +1,20 @@
 #ifndef BASE_H
 #define BASE_H
 
-#include <stdio.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
+
 #include <iostream>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
