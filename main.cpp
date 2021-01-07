@@ -1,9 +1,7 @@
 #include "base.h"
-#include "element.h"
-#include "game.h"
-#include "ai.h"
-#include "io.h"
-#include "display.h"
+#include "core/ai.h"
+#include "control/io.h"
+#include "render/display.h"
 #include <thread>
 
 using namespace std;
@@ -13,6 +11,7 @@ extern void refreshModel(bool lifting);
 thread display_t, game;
 
 void Othello_game(int p0, int p1);
+
 int Othello_main(int argc, char **argv);
 
 int main(int argc, char **argv) {
@@ -31,7 +30,7 @@ int main(int argc, char **argv) {
     return 0;
 }
 
-int Othello_main(int argc, char **argv){
+int Othello_main(int argc, char **argv) {
     clear();
     Game::reset();
     printf("Othello by xDroid\n");
@@ -51,7 +50,7 @@ int Othello_main(int argc, char **argv){
     switch (select) {
         case 0 :
             if (canReadRecord()) {
-                tie (ignore, player0, player1) = initReadRecord();
+                tie(ignore, player0, player1) = initReadRecord();
                 game = thread(Othello_game, player0, player1);
                 game.join();
             }
@@ -65,7 +64,8 @@ int Othello_main(int argc, char **argv){
             printf("Do you want to play black or white? (B/W)\n");
             char ch;
             scanf("%c", &ch);
-            while (scanf("%c", &ch)&&(ch!='b')&&(ch!='B')&&(ch!='w')&&(ch!='W')) printf("Sorry, but your input is invalid!\n");
+            while (scanf("%c", &ch) && (ch != 'b') && (ch != 'B') && (ch != 'w') && (ch != 'W'))
+                printf("Sorry, but your input is invalid!\n");
             fflush(stdin);
 
             switch (ch) {
@@ -79,24 +79,24 @@ int Othello_main(int argc, char **argv){
                     game = thread(Othello_game, PLAYER_AI, PLAYER_HUMAN);
                     game.join();
                     break;
-                default : ;
+                default :;
             }
             break;
         case 3 :
             game = thread(Othello_game, PLAYER_AI, PLAYER_AI);
             game.join();
-	        break;
+            break;
         case 4 :
             settings();
             break;
         case -1 :
             return 0;
-        default : ;
+        default :;
     }
     return -1;
 }
 
-void Othello_game(int p0, int p1){
+void Othello_game(int p0, int p1) {
     Player *player0, *player1;
     if (p0 == PLAYER_HUMAN) player0 = new Player(PLAYER_HUMAN, BLACK_SIDE);
     else player0 = new AI(BLACK_SIDE);
@@ -104,15 +104,14 @@ void Othello_game(int p0, int p1){
     if (p1 == PLAYER_HUMAN) player1 = new Player(PLAYER_HUMAN, WHITE_SIDE);
     else player1 = new AI(WHITE_SIDE);
 
-    Player* player[2] = {player0, player1};
+    Player *player[2] = {player0, player1};
     Game::gameStart(player[0]->whoami(), player[1]->whoami());
     while (Game::canContinue()) {
         Game::getBoard().print();
         //player[Game::playerIsWho()]->print();
         if (Game::canPlayerPlay(Game::getSideFlag())) {
             while (Game::setPiece((player[Game::playerIsWho()])->getPiece()));
-        }
-        else {
+        } else {
             printf("You have no place to toss your piece!\n");
             Game::jump();
         }

@@ -1,10 +1,10 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "element.h"
-#include "base.h"
-#include "game.h"
-#include "shader/shader.h"
+//#include "../core/element.h"
+#include "../base.h"
+#include "../core/game.h"
+#include "shader.h"
 #include <boost/format.hpp>
 
 using namespace boost;
@@ -28,6 +28,7 @@ extern int screenSize, screenWidth, screenHeight;
 void displayThread(const bool *);
 
 extern void mouseKey(int, int, int, int);
+
 extern void mouseMotion(int, int);
 
 struct DirectionalLight {

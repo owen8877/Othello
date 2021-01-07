@@ -1,19 +1,25 @@
-#include "display.h"
-#include "element.h"
-#include "base.h"
-#include "game.h"
-#include "model.h"
-#include "shader/shader.h"
-#include <cmath>
-#include <vector>
-#include <boost/filesystem.hpp>
-#include <boost/range/adaptor/indexed.hpp>
-#include <unordered_map>
-#include "camera.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#endif
 
 #define STB_IMAGE_IMPLEMENTATION
 
 #include "stb_image.h"
+#include "display.h"
+#include "camera.h"
+#include "shader.h"
+#include "../control/model.h"
+
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
+
+#include <cmath>
+#include <vector>
+#include <boost/filesystem.hpp>
+#include <boost/range/adaptor/indexed.hpp>
 
 int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 80 * BOARD_SIZE;
 double zoom = DEFAULT_ZOOM;
@@ -23,7 +29,7 @@ float backGroundColor = 0.304;
 float fogDensity = 0.00f;
 bool isFocus = false;
 GLfloat fogColorPause[] = {backGroundColor, backGroundColor, backGroundColor, 1.0f};
-GLfloat fogColorFocus[] = {0.1f, 0.15f, 0.2f, 0.0f};
+float fogColorFocus[] = {0.1f, 0.15f, 0.2f, 0.0f};
 char s_Save[] = "Save";
 char s_Load[] = "Load";
 char s_Save_and_Quit[] = "Save and Quit";
@@ -172,6 +178,7 @@ GLFWwindow *initGLFW() {
     glfwWindowHint(GLFW_DOUBLEBUFFER, true);
     glfwWindowHint(GLFW_REFRESH_RATE, 60);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -205,21 +212,17 @@ GLFWwindow *initGLFW() {
 }
 
 void initOpenGLOptions() {
+    glEnable(GL_DEPTH_TEST);
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//     glEnable(GL_MULTISAMPLE);
-//     glEnable(GL_POINT_SMOOTH);
-//     glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
-//     glEnable(GL_LINE_SMOOTH);
-//     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-//     glEnable(GL_POLYGON_SMOOTH);
-//     glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-//
-//     glEnable(GL_NORMALIZE);
-
-    glEnable(GL_DEPTH_TEST);
-//     glEnable(GL_COLOR_MATERIAL);
-//     glShadeModel(GL_SMOOTH);
+    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_POINT_SMOOTH);
+    glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_LINE_SMOOTH);
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+    glEnable(GL_POLYGON_SMOOTH);
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
 }
 
 //======================================================================================================================
@@ -646,13 +649,6 @@ std::function<void()> loop;
 void main_loop() { loop(); }
 
 void displayThread(const bool *gameEnds) {
-    // glutInit(&argc, argv); dep
-    // glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH | GLUT_MULTISAMPLE);
-    // glutInitWindowPosition(50, 50); +
-    // glutInitWindowSize(screenSize, screenSize); done
-    // glutCreateWindow("Othello"); done
-    // glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_GLUTMAINLOOP_RETURNS); done
-    // glutDisplayFunc(&display);
     // glutMouseFunc(&mouseKey);
     // glutMotionFunc(&mouseMotion);
     // glutPassiveMotionFunc(&mouseMotion);
@@ -661,10 +657,7 @@ void displayThread(const bool *gameEnds) {
     // glutSpecialFunc(&skeyboardCallback);
     // glutKeyboardUpFunc(&keyboardUpCallback);
     // glutSpecialUpFunc(&skeyboardUpCallback);
-    // initOpenGLOptions();+
-    // refreshModel(false);done
     // glutTimerFunc(0, &updateRenderStatus, 0);done
-    // glutMainLoop();deprecated
 
     // Init
     GLFWwindow *window = initGLFW();
@@ -678,9 +671,9 @@ void displayThread(const bool *gameEnds) {
     printf("Init finished.\n");
 
     // Load shaders, render objects ...
-    Shader simpleShader("shader/simple.vert", "shader/simple.frag");
-    Shader lightShader("shader/simple.vert", "shader/light.frag");
-    Shader withColorShader("shader/with_color.vert", "shader/with_color.frag");
+    Shader simpleShader("render/simple.vert", "render/simple.frag");
+    Shader lightShader("render/simple.vert", "render/light.frag");
+    Shader withColorShader("render/with_color.vert", "render/with_color.frag");
 
     RenderResource axisFrames = getAxisFrames();
     RenderResource cube = getCube(0.5f);
@@ -732,7 +725,7 @@ void displayThread(const bool *gameEnds) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Input and set projection+view to shader
+        // Input and set projection+view to render
         processInput(window);
 
         {//        if (Game::getGameStatus() == Lifting) {
@@ -756,9 +749,6 @@ void displayThread(const bool *gameEnds) {
         lightShader.setVec3("viewPos", camera.Position);
         lightShader.setMat4("projection", projMat);
         lightShader.setMat4("view", viewMat);
-
-        printf("yaw %.2f, pitch %.2f, position %s\n", camera.Yaw, camera.Pitch,
-               glm::to_string(camera.Position).c_str());
 
         simpleShader.use();
         simpleShader.setMat4("projection", projMat);

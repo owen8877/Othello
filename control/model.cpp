@@ -1,15 +1,10 @@
-#include "element.h"
-#include "base.h"
 #include "model.h"
-#include "game.h"
-#include <cmath>
-#include <vector>
-#include <time.h>
+#include "../core/game.h"
 
 using namespace std;
 
 extern bool isFocus;
-extern GLfloat fogColorFocus[];
+extern float fogColorFocus[];
 extern float fogDensity;
 extern double theta, fai;
 
@@ -108,7 +103,7 @@ int updateRenderStatus(int status) {
             }
             break;
         case 1: // Playing
-        // TODO
+            // TODO
 //            SDL_ShowCursor(SDL_DISABLE);
             refreshModel(false);
             switch (Game::getGameStatus()) {
@@ -144,7 +139,7 @@ int updateRenderStatus(int status) {
 //            SDL_ShowCursor(SDL_ENABLE);
             status = 4;
             refreshModel(true);
-            for (auto & stone : stones) {
+            for (auto &stone : stones) {
                 stone.fly();
             }
             break;
@@ -172,7 +167,7 @@ int updateRenderStatus(int status) {
             }
 
             double x = 0.0, y = 0.0, z = 0.0;
-            for (auto & stone : stones) {
+            for (auto &stone : stones) {
                 x += stone.getX();
                 y += stone.getY();
                 z += stone.getZ();

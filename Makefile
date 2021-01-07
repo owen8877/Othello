@@ -6,7 +6,7 @@ OBJEM = $(DIREM)/main.o $(DIREM)/ai.o $(DIREM)/display.o $(DIREM)/element.o $(DI
 EMXX = em++
 EMXXFLAGS = -Wall -O2
 EMLINKFLAGS = -s FULL_ES2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s LLD_REPORT_UNDEFINED -s WASM=1 --preload-file resources --preload-file shader
-#EMLINKFLAGS = -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s USE_GLFW=3 -s LLD_REPORT_UNDEFINED -s WASM=1 --preload-file resources --preload-file shader
+#EMLINKFLAGS = -s MIN_WEBGL_VERSION=2 -s MAX_WEBGL_VERSION=2 -s USE_GLFW=3 -s LLD_REPORT_UNDEFINED -s WASM=1 --preload-file resources --preload-file render
 
 DIR = bin
 BIN = $(DIR)/Othello
@@ -25,28 +25,28 @@ $(BINEM): $(DIREM) $(OBJEM) Makefile
 $(DIREM):
 	mkdir $(DIREM)
 
-$(DIREM)/main.o : main.cpp element.h base.h io.h ai.h game.h display.h
+$(DIREM)/main.o : main.cpp core/element.h base.h control/io.h core/ai.h core/game.h render/display.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/ai.o : ai.cpp ai.h game.h
+$(DIREM)/ai.o : core/ai.cpp core/ai.h core/game.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/display.o : display.cpp display.h element.h base.h game.h model.h shader/shader.h camera.h
+$(DIREM)/display.o : render/display.cpp render/display.h core/element.h base.h core/game.h control/model.h render render/camera.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/element.o : element.cpp element.h base.h game.h
+$(DIREM)/element.o : core/element.cpp core/element.h base.h core/game.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/game.o : game.cpp game.h io.h model.h
+$(DIREM)/game.o : core/game.cpp core/game.h control/io.h control/model.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/io.o : io.cpp element.h game.h base.h io.h
+$(DIREM)/io.o : control/io.cpp core/element.h core/game.h base.h control/io.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/model.o : model.cpp game.h base.h model.h element.h
+$(DIREM)/model.o : control/model.cpp core/game.h base.h control/model.h core/element.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
-$(DIREM)/player.o : player.cpp player.h base.h ai.h io.h element.h
+$(DIREM)/player.o : core/player.cpp core/player.h base.h core/ai.h control/io.h core/element.h
 	$(EMXX) $(EMXXFLAGS) -c $< -o $@
 
 # Native version
@@ -60,28 +60,28 @@ $(DIR):
 test : $(BIN)
 	./$(BIN)
 
-$(DIR)/main.o : main.cpp element.h base.h io.h ai.h game.h display.h
+$(DIR)/main.o : main.cpp core/element.h base.h control/io.h core/ai.h core/game.h render/display.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/ai.o : ai.cpp ai.h game.h
+$(DIR)/ai.o : core/ai.cpp core/ai.h core/game.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/display.o : display.cpp display.h element.h base.h game.h model.h
+$(DIR)/display.o : render/display.cpp render/display.h core/element.h base.h core/game.h control/model.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/element.o : element.cpp element.h base.h game.h
+$(DIR)/element.o : core/element.cpp core/element.h base.h core/game.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/game.o : game.cpp game.h io.h model.h
+$(DIR)/game.o : core/game.cpp core/game.h control/io.h control/model.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/io.o : io.cpp element.h game.h base.h io.h
+$(DIR)/io.o : control/io.cpp core/element.h core/game.h base.h control/io.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/model.o : model.cpp game.h base.h model.h element.h
+$(DIR)/model.o : control/model.cpp core/game.h base.h control/model.h core/element.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-$(DIR)/player.o : player.cpp player.h base.h ai.h io.h element.h
+$(DIR)/player.o : core/player.cpp core/player.h base.h core/ai.h control/io.h core/element.h
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 cleanbackup :

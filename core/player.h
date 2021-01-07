@@ -1,7 +1,7 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "base.h"
+#include "../base.h"
 #include "element.h"
 
 class Player{

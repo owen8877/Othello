@@ -14,7 +14,7 @@ endif()
 message(STATUS "Cmake prefix path: ${CMAKE_PREFIX_PATH}")
 
 # Target
-file(GLOB Othello_src "*.h" "*.cpp")
+file(GLOB Othello_src "*/*.h" "*/*.cpp" "*.h" "*.cpp")
 list(FILTER Othello_src EXCLUDE REGEX "Othello_submit.cpp")
 
 add_executable(Othello ${Othello_src})

@@ -1,21 +1,10 @@
 #ifndef BASE_H
 #define BASE_H
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <emscripten/html5.h>
-#endif
-
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
-
-#include <GLFW/glfw3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
 
@@ -47,18 +36,20 @@ const double REFRESH_UNIT = (1.0 / FPS);
 const int PLAYER_HUMAN = 0;
 const int PLAYER_AI = 1;
 
-const char ON [] = "On";
-const char OFF [] = "Off";
+const char ON[] = "On";
+const char OFF[] = "Off";
 
-const int LEFT_MOUSE_BUTTON    = 0x0001;
-const int MIDDLE_MOUSE_BUTTON  = 0x0002;
-const int RIGHT_MOUSE_BUTTON   = 0x0004;
+const int LEFT_MOUSE_BUTTON = 0x0001;
+const int MIDDLE_MOUSE_BUTTON = 0x0002;
+const int RIGHT_MOUSE_BUTTON = 0x0004;
 
-const int GLUT_WHEEL_UP        = 3;
-const int GLUT_WHEEL_DOWN      = 4;
+const int GLUT_WHEEL_UP = 3;
+const int GLUT_WHEEL_DOWN = 4;
 
 inline void clear() { system("clear"); }
+
 inline void mypause() { system("read"); }
-inline void msleep(int millsec) { usleep(1000*millsec); }
+
+inline void msleep(int millsec) { usleep(1000 * millsec); }
 
 #endif // BASE_H

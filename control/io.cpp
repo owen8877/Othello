@@ -1,9 +1,7 @@
-#include "base.h"
-#include "element.h"
-#include "game.h"
+#include "../base.h"
+#include "../core/game.h"
 #include "io.h"
 #include <fstream>
-#include <cmath>
 
 extern int screenSize, screenHeight, screenWidth;
 extern double theta, fai;
@@ -18,23 +16,23 @@ short xBuffer, yBuffer;
 int mouseButton = 0;
 int kbstat[256] = {0};
 
-Piece getPieceFromConsole(bool side){
+Piece getPieceFromConsole(bool side) {
     printf("Please input your piece :\n");
     char input[2];
     scanf("%s", input);
     int x = 0, y = 0;
-    if ((input[0]=='u')&&(input[1]=='u')) return Piece(0, 0, Undo);
-    if (input[0]=='m') return Piece(0, 0, Menu);
-    if ((input[0]=='s')&&(input[1]=='e')) return Piece(0, 0, Settings);
-    if ((input[0]=='s')&&(input[1]=='a')) return Piece(0, 0, Save);
-    if ((input[0]=='r')&&(input[1]=='e')) return Piece(0, 0, Recovery);
-    if ((input[0]>='a')&&(input[0]<='h')) y = input[0] - 'a' + 1;
-    if ((input[0]>='A')&&(input[0]<='H')) y = input[0] - 'A' + 1;
-    if ((input[1]>='1')&&(input[1]<='8')) x = input[1] - '0';
+    if ((input[0] == 'u') && (input[1] == 'u')) return Piece(0, 0, Undo);
+    if (input[0] == 'm') return Piece(0, 0, Menu);
+    if ((input[0] == 's') && (input[1] == 'e')) return Piece(0, 0, Settings);
+    if ((input[0] == 's') && (input[1] == 'a')) return Piece(0, 0, Save);
+    if ((input[0] == 'r') && (input[1] == 'e')) return Piece(0, 0, Recovery);
+    if ((input[0] >= 'a') && (input[0] <= 'h')) y = input[0] - 'a' + 1;
+    if ((input[0] >= 'A') && (input[0] <= 'H')) y = input[0] - 'A' + 1;
+    if ((input[1] >= '1') && (input[1] <= '8')) x = input[1] - '0';
     return Piece(x, y, getSideTag(side));
 }
 
-int menu(){
+int menu() {
     do {
         clear();
         Game::pauseGame();
@@ -55,8 +53,7 @@ int menu(){
                     mypause();
                     Game::resumeGame();
                     return 0;
-                }
-                else {
+                } else {
                     mypause();
                     break;
                 }
@@ -65,8 +62,7 @@ int menu(){
                     mypause();
                     Game::resumeGame();
                     return 0;
-                }
-                else {
+                } else {
                     mypause();
                     break;
                 }
@@ -96,13 +92,13 @@ int menu(){
             case -1 :
                 Game::resumeGame();
                 return 0;
-            default : ;
+            default :;
         }
     } while (true);
     return 0;
 }
 
-int loadSettings(){
+int loadSettings() {
     char buffer[] = "Settings";
     string fileName(buffer);
     ifstream input((fileName).c_str());
@@ -128,7 +124,7 @@ int loadSettings(){
     return 0;
 }
 
-int writeSettings(){
+int writeSettings() {
     char buffer[] = "Settings";
     string fileName(buffer);
     ofstream output((fileName).c_str());
@@ -148,7 +144,7 @@ int writeSettings(){
     return 0;
 }
 
-int settings(){
+int settings() {
     do {
         clear();
         printf("-->Settings<--\n");
@@ -188,13 +184,13 @@ int settings(){
             case -1 :
                 writeSettings();
                 return 0;
-            default : ;
+            default :;
         }
     } while (true);
     return 0;
 }
 
-int save(){
+int save() {
     char buffer[] = "Save";
     string fileName(buffer);
     ofstream output((fileName).c_str());
@@ -212,7 +208,7 @@ int save(){
     return 0;
 }
 
-bool canReadRecord(){
+bool canReadRecord() {
     char buffer[] = "Save";
     string fileName(buffer);
     ifstream input(fileName.c_str());
@@ -221,16 +217,16 @@ bool canReadRecord(){
     return flag;
 }
 
-tuple<int, int, int> initReadRecord(){
+tuple<int, int, int> initReadRecord() {
     Game::quitGameByException();
     return Game::recoverGame();
 }
 
-int readRecord(){
+int readRecord() {
     return get<0>(Game::recoverGame());
 }
 
-void renewMouseStat(double x, double y, int button){
+void renewMouseStat(double x, double y, int button) {
     static int button_old = 0;
     static double x_old = 0, y_old = 0;
     if (Game::getGameStatus() == Lifting) {
@@ -240,29 +236,24 @@ void renewMouseStat(double x, double y, int button){
             if (fai > 89.0) fai = 89.0;
             if (fai < 1.0) fai = 1.0;
         }
-    }
-    else if (Game::getGameStatus() == Playing) {
+    } else if (Game::getGameStatus() == Playing) {
         //They are actually playing.
         floatingx = x;
         floatingy = y;
         if (RIGHT_MOUSE_BUTTON & button) undo = true;
-    }
-    else if ((Game::getGameStatus() == Pause) && Settings::inputMehod) {
+    } else if ((Game::getGameStatus() == Pause) && Settings::inputMehod) {
         if (LEFT_MOUSE_BUTTON & button) {
             if ((x >= -0.15) && (x <= 0.15)) {
                 if ((y >= 0.15) && (y <= 0.25)) {
                     if (!save()) Game::resumeGame();
-                }
-                else if ((y >= 0.0) && (y <= 0.1)) {
+                } else if ((y >= 0.0) && (y <= 0.1)) {
                     if (!readRecord()) Game::resumeGame();
-                }
-                else if ((y >= -0.15) && (y <= -0.05)) {
+                } else if ((y >= -0.15) && (y <= -0.05)) {
                     if (!save()) {
                         Game::quitGameByException();
                         Game::endGame();
                     }
-                }
-                else if ((y >= -0.3) && (y <= -0.2)) {
+                } else if ((y >= -0.3) && (y <= -0.2)) {
                     Game::quitGameByException();
                     Game::endGame();
                 }
@@ -270,16 +261,17 @@ void renewMouseStat(double x, double y, int button){
         }
     }
     button_old = button;
-    x_old = x; y_old = y;
+    x_old = x;
+    y_old = y;
 }
 
-double zoomScale(double zoom, bool zoomOut){
+double zoomScale(double zoom, bool zoomOut) {
     if (zoomOut) return zoom * 0.95 + MAX_ZOOM * 0.05;
     else return zoom * 0.95 + MIN_ZOOM * 0.05;
 }
 
 // Mouse Callback
-void mouseKey(int button, int state, int x, int y){
+void mouseKey(int button, int state, int x, int y) {
 //    if (GLUT_DOWN == state) switch (button) {
 //        case GLUT_LEFT_BUTTON:
 //            mouseButton |= LEFT_MOUSE_BUTTON;
@@ -322,13 +314,13 @@ void mouseKey(int button, int state, int x, int y){
 }
 
 //Mouse Passive Callback
-void mouseMotion(int x, int y){
-    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
-                (double) (screenHeight/2.0 - y)/screenSize,
-                mouseButton);
+void mouseMotion(int x, int y) {
+    renewMouseStat((double) (x - screenWidth / 2.0) / screenSize,
+                   (double) (screenHeight / 2.0 - y) / screenSize,
+                   mouseButton);
 }
 
-void update(){
+void update() {
     if (kbstat['l'] && (Game::getGameStatus() == Playing)) Game::liftTheTable();
     if (kbstat['\x1B'] && Settings::inputMehod) {
         if (Game::getGameStatus() == Playing) Game::pauseGame();
@@ -345,18 +337,18 @@ void update(){
 }
 
 // Keyboard Callback
-void keyboardCallback(unsigned char key, int _x, int _y){
+void keyboardCallback(unsigned char key, int _x, int _y) {
     kbstat[key] = 1;
     update();
 }
 
-void keyboardUpCallback(unsigned char key, int x, int y){
+void keyboardUpCallback(unsigned char key, int x, int y) {
     kbstat[key] = 0;
     update();
 }
 
 // SpecialKeyboard Callback
-void skeyboardCallback(int key, int _x, int _y){
+void skeyboardCallback(int key, int _x, int _y) {
 //    switch (key) {
 //        case GLUT_KEY_CTRL_L:
 //        case GLUT_KEY_CTRL_R:
@@ -370,7 +362,7 @@ void skeyboardCallback(int key, int _x, int _y){
 //    update();
 }
 
-void skeyboardUpCallback(int key, int x, int y){
+void skeyboardUpCallback(int key, int x, int y) {
 //    switch (key) {
 //        case GLUT_KEY_CTRL_L:
 //        case GLUT_KEY_CTRL_R:
@@ -385,11 +377,14 @@ void skeyboardUpCallback(int key, int x, int y){
 }
 
 //For Mouse Input
-Piece getPieceFromMouse(bool side){
+Piece getPieceFromMouse(bool side) {
     while (Game::getGameStatus() == Pause) msleep(10);
     while ((Game::getGameStatus() == Playing) && !hasMouseInput) msleep(10);
     hasMouseInput = false;
     if (Game::getGameStatus() != Playing) return Piece(0, 0, Game::getGameStatus());
-    if (undo) { undo = false; return Piece(0, 0, Undo); }
+    if (undo) {
+        undo = false;
+        return Piece(0, 0, Undo);
+    }
     return Piece(xBuffer, yBuffer, getSideTag(side));
 }

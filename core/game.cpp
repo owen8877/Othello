@@ -1,6 +1,5 @@
 #include "game.h"
-#include "io.h"
-#include "model.h"
+#include "../control/io.h"
 
 //Initialization of static variables of the class Game
 Board Game::b = Board();
@@ -21,17 +20,16 @@ bool Settings::fancyLights = false;
 bool Settings::showAxis = false;;
 
 //Implements of static private Functions
-int Game::undo(){
-    if (isPlayerAI(1-playerIsWho()) == PLAYER_AI) return b.undo(2);
+int Game::undo() {
+    if (isPlayerAI(1 - playerIsWho()) == PLAYER_AI) return b.undo(2);
     if (!b.undo(1)) {
         switchSide();
         return 0;
-    }
-    else return -1;
+    } else return -1;
 }
 
 //Implements of static public Functions
-bool Game::gameStart(int p0, int p1){
+bool Game::gameStart(int p0, int p1) {
     if (gameStatus == Idle) {
         gameStatus = Playing;
         player0 = p0;
@@ -43,10 +41,11 @@ bool Game::gameStart(int p0, int p1){
     return false;
 }
 
-int Game::setPiece(Piece p){
+int Game::setPiece(Piece p) {
     switch (p.getStatus()) {
         case Undo :
-            do { undo(); } while (!canPlayerPlay(sideFlag));
+            do { undo(); }
+            while (!canPlayerPlay(sideFlag));
             switchSide();
             return 0;
         case Menu :
@@ -77,48 +76,48 @@ int Game::setPiece(Piece p){
     }
 }
 
-Board Game::getBoard(){
+Board Game::getBoard() {
     return b;
 }
 
-bool Game::getSideFlag(){
+bool Game::getSideFlag() {
     return sideFlag;
 }
 
-int Game::playerIsWho(){
-    return (Game::getSideFlag()==BLACK_SIDE) ? 0 : 1;
+int Game::playerIsWho() {
+    return (Game::getSideFlag() == BLACK_SIDE) ? 0 : 1;
 }
 
-int Game::switchSide(){
+int Game::switchSide() {
     sideFlag = !sideFlag;
     return 0;
 }
 
-int Game::jump(){
+int Game::jump() {
     b.record();
     return 0;
 }
 
-int Game::reset(){
+int Game::reset() {
     b = Board();
     sideFlag = BLACK_SIDE;
     gameStatus = Idle;
     return 0;
 }
 
-bool Game::canPlayerPlay(bool player){
+bool Game::canPlayerPlay(bool player) {
     return (getBoard().getValid(player) != 0);
 }
 
-bool Game::eitherCanPlay(){
+bool Game::eitherCanPlay() {
     return ((getBoard().getValid(BLACK_SIDE) != 0) || (getBoard().getValid(WHITE_SIDE)) != 0);
 }
 
-Status Game::getGameStatus(){
+Status Game::getGameStatus() {
     return gameStatus;
 }
 
-bool Game::canContinue(){
+bool Game::canContinue() {
     if (gameStatus == Lifting) return false; // The game can no longer play!!!
     if (gameStatus == End) return false; // The game is ended.
     if (b.full()) return false;
@@ -126,7 +125,7 @@ bool Game::canContinue(){
     return eitherCanPlay() && (gameStatus == Playing);
 }
 
-bool Game::liftTheTable(){
+bool Game::liftTheTable() {
     if (gameStatus == Playing) {
         gameStatus = Lifting;
         return true;
@@ -134,15 +133,15 @@ bool Game::liftTheTable(){
     return false;;
 }
 
-bool Game::pauseGame(){
+bool Game::pauseGame() {
     if (gameStatus == Playing) {
-            gameStatus = Pause;
-            return true;
+        gameStatus = Pause;
+        return true;
     }
     return false;
 }
 
-bool Game::resumeGame(){
+bool Game::resumeGame() {
     if (gameStatus == Pause) {
         gameStatus = Playing;
         return true;
@@ -150,41 +149,41 @@ bool Game::resumeGame(){
     return false;
 }
 
-bool Game::quitGameByException(){
+bool Game::quitGameByException() {
     if (exceptionalQuit) return false;
     exceptionalQuit = true;
     return true;
 }
 
-bool Game::quitNormal(){
+bool Game::quitNormal() {
     if (!exceptionalQuit) return false;
     exceptionalQuit = false;
     return true;
 }
 
-void Game::endGame(){
+void Game::endGame() {
     gameStatus = End;
 }
 
-tuple<int, int, int> Game::recoverGame(){
+tuple<int, int, int> Game::recoverGame() {
     tuple<int, int, int> r = b.recovery();
-    if ((get<0>(r) != 1) &&(get<0>(r) != 2)) return make_tuple(-1, 0, 0);
-    sideFlag = ((get<0>(r)==1) ? BLACK_SIDE : WHITE_SIDE);
+    if ((get<0>(r) != 1) && (get<0>(r) != 2)) return make_tuple(-1, 0, 0);
+    sideFlag = ((get<0>(r) == 1) ? BLACK_SIDE : WHITE_SIDE);
     printf("The game has been correctedly recovered.\n");
     get<0>(r) = 0;
     return r;
 }
 
-bool Game::isExceptionalQuit(){
+bool Game::isExceptionalQuit() {
     return exceptionalQuit;
 }
 
-bool Game::hasRecord(){
+bool Game::hasRecord() {
     record = canReadRecord();
     return record;
 }
 
-int Game::isPlayerAI(int player){
+int Game::isPlayerAI(int player) {
     switch (player) {
         case 0 :
             return player0;
