@@ -56,6 +56,7 @@ Camera camera;
 float lastX = screenWidth / 2.0f;
 float lastY = screenHeight / 2.0f;
 bool firstMouse = true;
+bool clipping = true;
 
 // timing
 float deltaTime = 0.0f;
@@ -131,6 +132,17 @@ void initLights() {
     glm::vec3 e3 = {0.0, 0.0, 1.0};
     spotLights = {
             {
+                    // position determined by camera!
+                    .ambient = ambient,
+                    .diffuse = diffuse / 3.0f,
+                    .specular = specular / 3.0f,
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+                    .cutOff = glm::cos(glm::radians(12.0f)),
+                    .outerCutOff = glm::cos(glm::radians(15.0f)),
+            },
+            {
                     .position {3, 3 * sqrt(3), 3},
                     .direction {-3, -3 * sqrt(3), -3 + 1},
                     .ambient = ambient * e1,
@@ -166,9 +178,8 @@ void initLights() {
                     .cutOff = glm::cos(glm::radians(60.0f)),
                     .outerCutOff = glm::cos(glm::radians(90.0f)),
             },
-            {.enabled = false},
     };
-    spotLightCap = 3;
+    spotLightCap = 4;
 }
 
 GLFWwindow *initGLFW() {
@@ -198,7 +209,7 @@ GLFWwindow *initGLFW() {
     glfwSetWindowSizeCallback(window, reshape_callback);
 
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+//    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
 // ---------------------------------------
@@ -233,7 +244,7 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (Game::getGameStatus() == Lifting) {
+    if (Game::getGameStatus() == Lifting || clipping) {
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
             camera.ProcessKeyboard(FORWARD, deltaTime);
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -480,10 +491,13 @@ struct RenderResource {
     GLuint vbo{};
     GLenum mode;
     int drawCount{};
+    GLuint diffuseMap = -1;
+    GLuint specularMap = -1;
 
     RenderResource() = delete;
 
-    RenderResource(const vector<Vertex_NT> &vertices, GLenum mode) : mode{mode} {
+    RenderResource(const vector<Vertex_NT> &vertices, GLenum mode, GLuint diffuseMap, GLuint specularMap)
+            : mode{mode}, diffuseMap{diffuseMap}, specularMap{specularMap} {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
 
@@ -501,7 +515,8 @@ struct RenderResource {
         glEnableVertexAttribArray(2);
     }
 
-    RenderResource(const vector<Vertex_C> &vertices, GLenum mode) : mode{mode} {
+    RenderResource(const vector<Vertex_C> &vertices, GLenum mode)
+            : mode{mode} {
         glGenVertexArrays(1, &vao);
         glGenBuffers(1, &vbo);
 
@@ -518,6 +533,14 @@ struct RenderResource {
     }
 
     void draw() const {
+        if (diffuseMap >= 0) {
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        }
+        if (specularMap >= 0) {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, specularMap);
+        }
         glBindVertexArray(vao);
         glDrawArrays(mode, 0, drawCount);
     }
@@ -528,8 +551,8 @@ struct RenderResource {
     }
 };
 
-RenderResource getCube(float cubeSize_2) {
-    const vector<Vertex_NT> vertices = {
+vector<Vertex_NT> getCubeVertices() {
+    return {
             {{-0.5f, -0.5f, -0.5f}, {0.0f,  0.0f,  -1.0f}, {0.0f, 0.0f}},
             {{0.5f,  -0.5f, -0.5f}, {0.0f,  0.0f,  -1.0f}, {1.0f, 0.0f}},
             {{0.5f,  0.5f,  -0.5f}, {0.0f,  0.0f,  -1.0f}, {1.0f, 1.0f}},
@@ -572,25 +595,144 @@ RenderResource getCube(float cubeSize_2) {
             {{-0.5f, 0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {0.0f, 1.0f}},
             {{-0.5f, 0.5f,  -0.5f}, {0.0f,  1.0f,  0.0f},  {0.0f, 0.0f}},
     };
-
-    return RenderResource(vertices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
 }
 
-RenderResource getFloor(float floorSize) {
-    const vector<Vertex_NT> vertices = {
-            {{-floorSize / 2, -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{floorSize / 2,  -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-            {{floorSize / 2,  floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{floorSize / 2,  floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-floorSize / 2, floorSize / 2,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            {{-floorSize / 2, -floorSize / 2, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+vector<Vertex_NT> getSquareVertices() {
+    return {
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
+            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
     };
-
-    return RenderResource(vertices, GL_TRIANGLES); // NOLINT(modernize-return-braced-init-list)
 }
 
-RenderResource getAxisFrames() {
-    const vector<Vertex_C> vertices = {
+vector<Vertex_NT> getFloorVertices() {
+    return {
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  0.0f}},
+            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 0.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 30.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 30.0f}},
+            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  30.0f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  0.0f}},
+    };
+}
+
+vector<Vertex_NT> getCylinderVertices() {
+    const int sectorNumber = CIRCLE_MAX;
+    const float theta = M_PI * 2 / sectorNumber;
+    const float inner = 0.8f;
+
+    vector<Vertex_NT> vertices;
+    vertices.reserve(6 * sectorNumber);
+
+    // Black part is up
+    for (int i = 0; i < sectorNumber; ++i) {
+        float angle_s = theta * i;
+        float angle_e = angle_s + theta;
+
+        float c = cos(angle_s);
+        float cp = cos(angle_e);
+        float s = sin(angle_s);
+        float sp = sin(angle_e);
+
+        float tx = (1 + c) / 4;
+        float tpx = (1 + cp) / 4;
+        float tix = (1 + c * inner) / 4;
+        float tipx = (1 + cp * inner) / 4;
+        float ty = (1 + s) / 2;
+        float tpy = (1 + sp) / 2;
+        float tiy = (1 + s * inner) / 2;
+        float tipy = (1 + sp * inner) / 2;
+
+        vertices.push_back({{c,  s, 0},
+                            {c,  s, 0},
+                            {tx, ty}});
+        vertices.push_back({{cp,  sp, 0},
+                            {cp,  sp, 0},
+                            {tpx, tpy}});
+        vertices.push_back({{cp,   sp, 1},
+                            {cp,   sp, 0},
+                            {tipx, tipy}});
+        vertices.push_back({{cp,   sp, 1},
+                            {cp,   sp, 0},
+                            {tipx, tipy}});
+        vertices.push_back({{c,   s, 1},
+                            {c,   s, 0},
+                            {tix, tiy}});
+        vertices.push_back({{c,  s, 0},
+                            {c,  s, 0},
+                            {tx, ty}});
+
+        vertices.push_back({{c,   s, 1},
+                            {0,   0, 1},
+                            {tix, tiy}});
+        vertices.push_back({{cp,   sp, 1},
+                            {0,    0,  1},
+                            {tipx, tipy}});
+
+        vertices.push_back({{0,     0, 1},
+                            {0,     0, 1},
+                            {0.25f, 0.5f}});
+    }
+
+    // White part is down
+    for (int i = 0; i < sectorNumber; ++i) {
+        float angle_s = theta * i;
+        float angle_e = angle_s + theta;
+
+        float c = cos(angle_s);
+        float cp = cos(angle_e);
+        float s = sin(angle_s);
+        float sp = sin(angle_e);
+
+        float tx = (3 - c) / 4;
+        float tpx = (3 - cp) / 4;
+        float tix = (3 - c * inner) / 4;
+        float tipx = (3 - cp * inner) / 4;
+
+        float ty = (1 + s) / 2;
+        float tpy = (1 + sp) / 2;
+        float tiy = (1 + s * inner) / 2;
+        float tipy = (1 + sp * inner) / 2;
+
+        vertices.push_back({{c,   s, -1},
+                            {c,   s, 0},
+                            {tix, tiy}});
+        vertices.push_back({{cp,   sp, -1},
+                            {cp,   sp, 0},
+                            {tipx, tipy}});
+        vertices.push_back({{cp,  sp, 0},
+                            {cp,  sp, 0},
+                            {tpx, tpy}});
+        vertices.push_back({{cp,  sp, 0},
+                            {cp,  sp, 0},
+                            {tpx, tpy}});
+        vertices.push_back({{c,  s, 0},
+                            {c,  s, 0},
+                            {tx, ty}});
+        vertices.push_back({{c,   s, -1},
+                            {c,   s, 0},
+                            {tix, tiy}});
+
+        vertices.push_back({{cp,   sp, -1},
+                            {0,    0,  -1},
+                            {tipx, tipy}});
+        vertices.push_back({{c,   s, -1},
+                            {0,   0, -1},
+                            {tix, tiy}});
+        vertices.push_back({{0,     0, -1},
+                            {0,     0, -1},
+                            {0.75f, 0.5f}});
+    }
+
+    return
+            vertices;
+}
+
+vector<Vertex_C> getAxisFrames() {
+    return {
             {{0.0f,    0.0f,    0.0f},    {0.0f, 0.0f, 1.0f}},
             {{0.0f,    0.0f,    1000.0f}, {0.0f, 0.0f, 1.0f}},
             {{0.0f,    0.0f,    0.0f},    {0.0f, 1.0f, 0.0f}},
@@ -598,8 +740,24 @@ RenderResource getAxisFrames() {
             {{0.0f,    0.0f,    0.0f},    {1.0f, 0.0f, 0.0f}},
             {{1000.0f, 0.0f,    0.0f},    {1.0f, 0.0f, 0.0f}},
     };
+}
 
-    return RenderResource(vertices, GL_LINES); // NOLINT(modernize-return-braced-init-list)
+vector<Vertex_C> getBlackValidHint() {
+    return {
+            {{-0.5f, -0.5f, 0.0f}, {0.8f, 0.8f, 0.8f}},
+            {{-0.5f, 0.5f,  0.0f}, {0.8f, 0.8f, 0.8f}},
+            {{0.5f,  0.5f,  0.0f}, {0.8f, 0.8f, 0.8f}},
+            {{0.5f,  -0.5f, 0.0f}, {0.8f, 0.8f, 0.8f}},
+    };
+}
+
+vector<Vertex_C> getWhiteValidHint() {
+    return {
+            {{-0.5f, -0.5f, 0.0f}, {0.2f, 0.2f, 0.2f}},
+            {{-0.5f, 0.5f,  0.0f}, {0.2f, 0.2f, 0.2f}},
+            {{0.5f,  0.5f,  0.0f}, {0.2f, 0.2f, 0.2f}},
+            {{0.5f,  -0.5f, 0.0f}, {0.2f, 0.2f, 0.2f}},
+    };
 }
 
 unsigned int loadTexture(char const *path) {
@@ -675,31 +833,13 @@ void displayThread(const bool *gameEnds) {
     Shader lightShader("render/simple.vert", "render/light.frag");
     Shader withColorShader("render/with_color.vert", "render/with_color.frag");
 
-    RenderResource axisFrames = getAxisFrames();
-    RenderResource cube = getCube(0.5f);
-    RenderResource light = getCube(0.2f);
-    RenderResource floor = getFloor(2 * FLOOR_SIZE);
-
-    glm::vec3 cubePositions[] = {
-            glm::vec3(0.0f, 0.0f, 0.0f),
-            glm::vec3(2.0f, 5.0f, -15.0f),
-            glm::vec3(-1.5f, -2.2f, -2.5f),
-            glm::vec3(-3.8f, -2.0f, -12.3f),
-            glm::vec3(2.4f, -0.4f, -3.5f),
-            glm::vec3(-1.7f, 3.0f, -7.5f),
-            glm::vec3(1.3f, -2.0f, -2.5f),
-            glm::vec3(1.5f, 2.0f, -2.5f),
-            glm::vec3(1.5f, 0.2f, -1.5f),
-            glm::vec3(-1.3f, 1.0f, -1.5f)
-    };
     printf("Shaders loaded.\n");
 
     // Set-up shaders and textures
     lightShader.use();
     lightShader.setFloat("material.shininess", 32.0f);
 
-    int boxDiffuseTex, boxSpecularTex, ceramicTileDiffuseTex, blankTex, paletteTex;
-
+    int boxDiffuseTex, boxSpecularTex, ceramicTileDiffuseTex, blankTex, paletteTex, simpleStoneTex;
     {
         auto wrapper = [](auto name, int glt) {
             int id = loadTexture(filesystem::path((boost::format("resources/textures/%1%") % name).str()).c_str());
@@ -712,7 +852,16 @@ void displayThread(const bool *gameEnds) {
         ceramicTileDiffuseTex = wrapper("ceramic-tile.jpg", GL_TEXTURE2);
         blankTex = wrapper("black.png", GL_TEXTURE3);
         paletteTex = wrapper("palette.png", GL_TEXTURE4);
+        simpleStoneTex = wrapper("simple-stone.png", GL_TEXTURE5);
     }
+
+    RenderResource axisFrames = RenderResource(getAxisFrames(), GL_LINES);
+    RenderResource blackValidHint = RenderResource(getBlackValidHint(), GL_QUADS);
+    RenderResource whiteValidHint = RenderResource(getWhiteValidHint(), GL_QUADS);
+    RenderResource cube = RenderResource(getCubeVertices(), GL_TRIANGLES, boxDiffuseTex, boxSpecularTex);
+    RenderResource stone = RenderResource(getCylinderVertices(), GL_TRIANGLES, simpleStoneTex, boxSpecularTex);
+    RenderResource light = RenderResource(getCubeVertices(), GL_TRIANGLES, -1, -1);
+    RenderResource floor = RenderResource(getFloorVertices(), GL_TRIANGLES, ceramicTileDiffuseTex, blankTex);
 
     printf("Textures loaded.\n");
 
@@ -743,7 +892,14 @@ void displayThread(const bool *gameEnds) {
 //        }
         }
 
-        glm::mat4 viewMat = camera.GetViewMatrix();
+        // Bind camera to spotLight0
+        spotLights[0].position = camera.Position;
+        spotLights[0].direction = camera.Front;
+
+        // TODO: Update zoom as well
+
+//        glm::mat4 viewMat = camera.GetViewMatrix();
+        glm::mat4 viewMat = glm::lookAt(camera.Position, {0, 0, 0}, {0, 0, 1});
 
         lightShader.use();
         lightShader.setVec3("viewPos", camera.Position);
@@ -776,33 +932,91 @@ void displayThread(const bool *gameEnds) {
         lightShader.setInt("material.diffuse", 0);
         lightShader.setInt("material.specular", 1);
 
-        // Cubes
-        {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, boxDiffuseTex);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, boxSpecularTex);
+        // Stone
+        if (Game::getGameStatus() != Idle) {
+            for (auto s : stones) {
+                if ((s.getColor() == BlackValid) || (s.getColor() == WhiteValid) ||
+                    (s.getColor() == Valid)) {
+                    continue;
+                    if ((Game::getGameStatus() == Playing) && (Settings::pieceAssistance)) {
+                        if (getValidTag(Game::getSideFlag()) & s.getColor()) {
+                            auto stoneModelMat = glm::mat4(1.0f);
+                            stoneModelMat = glm::translate(stoneModelMat, {s.getX(), s.getY(), s.getZ()});
+                            stoneModelMat = glm::translate(stoneModelMat, {0.0, 0.0, 0.0001});
+                            stoneModelMat = glm::scale(stoneModelMat, {STONE_INTERVAL, STONE_INTERVAL, 1});
+                            withColorShader.use();
+                            withColorShader.setMat4("model", stoneModelMat);
 
-            for (auto const &cubePosition : cubePositions | boost::adaptors::indexed(0)) {
-                int i = cubePosition.index();
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, cubePositions[i]);
-                float angle = 20.0f * i + currentFrame * 20;
-                model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-                lightShader.setMat4("model", model);
+                            if (Game::getSideFlag() == BLACK_SIDE) {
+                                blackValidHint.draw();
+                            }
+                            if (Game::getSideFlag() == WHITE_SIDE) {
+                                whiteValidHint.draw();
+                            }
+                        }
+                    }
+                } else {
+//                if (Settings::showBigBall) {
+//                    glLineWidth(2);
+//                    glutWireSphere(10.0, 30, 30);
+//                }
+                    auto stoneModelMat = glm::mat4(1.0f);
+                    stoneModelMat = glm::translate(stoneModelMat, glm::vec3{s.getX(), s.getY(), s.getZ()});
+                    stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(
+                            atan2f(s.getAxisy(), s.getAxisx() / M_PI) * 180.0f - 90.0f), {0.0f, 0.0f, 1.0f});
 
-                cube.draw();
+                    if ((s.getAxisy() != 0.0) && (s.getAxisx() != 0.0)) {
+                        float degree = (atan2f(s.getAxisz(),
+                                               sqrtf(s.getAxisx() *
+                                                     s.getAxisx() +
+                                                     s.getAxisy() *
+                                                     s.getAxisy()))) *
+                                       180.0f / M_PI;
+                        stoneModelMat = glm::rotate(stoneModelMat,
+                                                    glm::degrees(degree),
+                                                    glm::vec3{s.getAxisy(), -s.getAxisx(), 0.0});
+                    }
+                    stoneModelMat = glm::rotate(stoneModelMat, glm::degrees((float) s.getAngle()),
+                                                glm::vec3{0.0f, 1.0f, 0.0f});
+                    stoneModelMat = glm::translate(stoneModelMat, glm::vec3{0.0, 0.0, STONE_HEIGHT / 4});
+
+                    if (s.getColor() == White) {
+                        stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(180.0f), glm::vec3{0.0, 1.0, 0.0});
+                        stoneModelMat = glm::translate(stoneModelMat, glm::vec3{0.0, 0.0, -STONE_HEIGHT / 2});
+//                        glScaled(1.0, 1.0, -1.0);
+//                        glTranslated(0.0, 0.0, -STONE_HEIGHT / 2);
+                    }
+
+                    stoneModelMat = glm::scale(stoneModelMat, glm::vec3{STONE_RADIUS, STONE_RADIUS, STONE_HEIGHT});
+
+                    lightShader.use();
+                    lightShader.setMat4("model", stoneModelMat);
+                    stone.draw();
+//                    glPushMatrix();
+//                    glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
+//                    glColor3d(0.0, 0.0, 0.0);
+//                    glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
+//                    glPopMatrix();
+//                    glTranslated(0.0, 0.0, -STONE_HEIGHT / 4);
+//                    glColor3d(1.0, 1.0, 1.0);
+//                    glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
+//                    glPopMatrix();
+                }
             }
+
+
+//            auto stoneModelMat = glm::mat4(1.0f);
+//            stoneModelMat = glm::translate(stoneModelMat, {0, 0, 2});
+//            stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(0.0f), {0.0f, 1.0f, 0.0f});
+//            lightShader.setMat4("model", stoneModelMat);
+//            stone.draw();
         }
 
         // Floor
         {
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, ceramicTileDiffuseTex);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, blankTex);
-
-            lightShader.setMat4("model", glm::identity<glm::mat4>());
+            auto floorModelMat = glm::mat4(1.0f);
+            floorModelMat = glm::scale(floorModelMat, glm::vec3(30.0f));
+            lightShader.setMat4("model", floorModelMat);
             floor.draw();
         }
 
