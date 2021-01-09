@@ -10,6 +10,8 @@
 #include "camera.h"
 #include "shader.h"
 #include "../control/model.h"
+#include "../core/player.h"
+#include "../core/ai.h"
 
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -40,7 +42,7 @@ extern void refreshModel(bool lifting);
 
 extern int updateRenderStatus(int status);
 
-extern void handleMouseButton(GLFWwindow* window, int button, int action, int mods);
+extern void handleMouseButton(GLFWwindow *window, int button, int action, int mods);
 
 extern void mouseMotion(int x, int y);
 
@@ -62,16 +64,6 @@ bool clipping = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
-inline void setVertexColor(double x, double y) {
-//    double p = pow(((pow(x, 8) + pow(y, 8)) / 2.0), 0.125) / FLOOR_SHADE_SIZE;
-//    double temp = (p < 2) ? (-(p-2)*(p-2) + 1) : 1.0;
-//    glColor3d(temp, temp, temp);
-}
-
-
-
-
 
 // New static variables
 
@@ -290,11 +282,13 @@ void reshape_core(int width, int height) {
 }
 
 void reshape_callback(GLFWwindow *window, int width, int height) {
+#ifdef __EMSCRIPTEN__
     puts("Resized!");
+#else
+
+#endif
     reshape_core(width, height);
 }
-
-// Render
 
 void updateFog() {
 //     if (Game::getGameStatus() == Pause) {
@@ -654,6 +648,8 @@ std::function<void()> loop;
 
 void main_loop() { loop(); }
 
+#define __EMSCRIPTEN__
+
 void displayThread(const bool *gameEnds) {
     // glutMouseFunc(&mouseKey);
     // glutMotionFunc(&mouseMotion);
@@ -674,14 +670,22 @@ void displayThread(const bool *gameEnds) {
     int render_status = 0;
     refreshModel(false);
 
+#ifdef __EMSCRIPTEN__
     printf("Init finished.\n");
+#else
+
+#endif
 
     // Load shaders, render objects ...
     Shader simpleShader("render/simple.vert", "render/simple.frag");
     Shader lightShader("render/simple.vert", "render/light.frag");
     Shader withColorShader("render/with_color.vert", "render/with_color.frag");
 
+#ifdef __EMSCRIPTEN__
     printf("Shaders loaded.\n");
+#else
+
+#endif
 
     // Set-up shaders and textures
     lightShader.use();
@@ -717,16 +721,61 @@ void displayThread(const bool *gameEnds) {
     RenderResource light = RenderResource(getCubeVertices(), GL_TRIANGLES, -1, -1);
     RenderResource floor = RenderResource(getFloorVertices(), GL_TRIANGLES, ceramicTileDtex, blankTex);
 
+#ifdef __EMSCRIPTEN__
     printf("Textures loaded.\n");
+#else
+
+#endif
+
+#ifdef __EMSCRIPTEN__
+    // Init game
+    Player *player0, *player1;
+    auto p0 = PLAYER_HUMAN, p1 = PLAYER_AI;
+    if (p0 == PLAYER_HUMAN) player0 = new Player(PLAYER_HUMAN, BLACK_SIDE);
+    else player0 = new AI(BLACK_SIDE);
+
+    if (p1 == PLAYER_HUMAN) player1 = new Player(PLAYER_HUMAN, WHITE_SIDE);
+    else player1 = new AI(WHITE_SIDE);
+
+    Player *player[2] = {player0, player1};
+    Game::gameStart(player[0]->whoami(), player[1]->whoami());
+
+    bool endGameNotice = false;
+#else
+
+#endif
 
     // Main loop
-
     loop = [&] {
-//        printf("Looping...\n");
         // Per-frame time logic
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+#ifdef __EMSCRIPTEN__
+        // Update game
+        if (Game::canContinue()) {
+//            player[Game::playerIsWho()]->print();
+            if (Game::canPlayerPlay(Game::getSideFlag())) {
+                if (!Game::setPiece((player[Game::playerIsWho()])->getPiece())) {
+                    Game::switchSide();
+                }
+            } else {
+                printf("You have no place to toss your piece!\n");
+                Game::jump();
+                Game::switchSide();
+            }
+        } else {
+            if (!endGameNotice) {
+                if (Game::getBoard().getBlackcount() > Game::getBoard().getWhitecount()) printf("Black Wins!!!\n");
+                else if (Game::getBoard().getBlackcount() < Game::getBoard().getWhitecount()) printf("White Wins!!!\n");
+                else printf("Tie!!!\n");
+                endGameNotice = true;
+            }
+        }
+#else
+
+#endif
 
         // Input and set projection+view to render
         processInput(window);
@@ -921,8 +970,8 @@ void displayThread(const bool *gameEnds) {
         glfwPollEvents();
     };
 
-#ifdef EMSCRIPTEN
-    emscripten_set_main_loop(main_loop, 10, true);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(main_loop, 60, true);
 #else
     while (!glfwWindowShouldClose(window) && !*gameEnds) {
         main_loop();
@@ -934,7 +983,13 @@ void displayThread(const bool *gameEnds) {
     axisFrames.free();
     light.free();
 
-    // glfw: terminate, clearing all previously allocated GLFW resources.
-    // ------------------------------------------------------------------
+#ifdef __EMSCRIPTEN__
+    delete player0;
+    delete player1;
+    Game::quitNormal();
+#else
+
+#endif
+
     glfwTerminate();
 }

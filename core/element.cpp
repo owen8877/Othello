@@ -140,10 +140,10 @@ Piece Board::getPiece(int x, int y) {
 
 //The member function returns 0 if it did set the piece
 int Board::setPiece(Piece p) {
-    if (!inRange(p.getX(), p.getY())) { //printf("out! %d %d\n", p.getX(), p.getY());
+    if (!inRange(p.getX(), p.getY())) {
         return 1;
     }
-    if (!((pieces[p.getX()][p.getY()] & 3) & getValidTag(Game::getSideFlag()))) { //printf("not valid!\n");
+    if (!((pieces[p.getX()][p.getY()] & 3) & getValidTag(Game::getSideFlag()))) {
         return 2;
     }
     //First, let me record the board.

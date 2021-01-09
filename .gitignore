@@ -14,3 +14,4 @@ Makefile.win
 *.css
 /cmake-build-debug/
 bin-em/
+deploy/

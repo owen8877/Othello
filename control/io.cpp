@@ -372,8 +372,14 @@ void skeyboardUpCallback(int key, int x, int y) {
 
 //For Mouse Input
 Piece getPieceFromMouse(bool side) {
+#ifdef __EMSCRIPTEN__
+    if (Game::getGameStatus() == Pause || ((Game::getGameStatus() == Playing) && !hasMouseInput)) {
+        return Piece(0, 0, Waiting);
+    }
+#else
     while (Game::getGameStatus() == Pause) msleep(10);
     while ((Game::getGameStatus() == Playing) && !hasMouseInput) msleep(10);
+#endif
     hasMouseInput = false;
     if (Game::getGameStatus() != Playing) return Piece(0, 0, Game::getGameStatus());
     if (undo) {

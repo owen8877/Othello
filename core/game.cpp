@@ -62,6 +62,8 @@ int Game::setPiece(Piece p) {
             return 0;
         case Idle :
             return 0;
+        case Waiting :
+            return 1;
         case Lifting :
             while (gameStatus != End) msleep(100);
             return 0;

@@ -6,7 +6,7 @@
 #include <vector>
 #include <tuple>
 
-enum Status {Empty, BlackValid, WhiteValid, Valid, Black, Undo, Menu, Settings, White=8, Save, Idle, Playing, Lifting, End, Pause, Recovery};
+enum Status {Empty, BlackValid, WhiteValid, Valid, Black, Undo, Menu, Settings, White=8, Save, Idle, Playing, Lifting, End, Pause, Recovery, Waiting};
 
 using namespace std;
 

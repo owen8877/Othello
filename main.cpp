@@ -6,8 +6,6 @@
 
 using namespace std;
 
-extern void refreshModel(bool lifting);
-
 thread display_t, game;
 
 void Othello_game(int p0, int p1);

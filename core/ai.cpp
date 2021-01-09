@@ -2,6 +2,7 @@
 #include "game.h"
 
 Piece AI::getPiece() {
+    msleep(500);
     int myvalid = Game::getBoard().getValid(side);
     srand((unsigned) time(0));
     int which = rand() % myvalid;

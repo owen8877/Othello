@@ -14,12 +14,17 @@ LIB = -Lfreeglut -Wl,-Bdynamic -lglut -lGLU -lGL -lX11 -lXxf86vm -lXi -lpthread
 CXX = g++
 CXXFLAGS = -Wall -O3 -std=c++0x
 
-.PHONY: test clean cleanbackup cb win
+.PHONY: publish test clean cleanbackup cb win
 
 # Wasm version
 
 $(BINEM): $(DIREM) $(OBJEM) Makefile
 	$(EMXX) $(OBJEM) -o $(BINEM) $(EMLINKFLAGS)
+	cp bin-em/Othello.* deploy/worker/public/
+	mv deploy/worker/public/Othello.html deploy/worker/public/index.html
+
+publish:
+	cd deploy/worker && wrangler publish
 
 $(DIREM):
 	mkdir $(DIREM)
