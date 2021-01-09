@@ -5,7 +5,7 @@ BINEM = $(DIREM)/Othello.html
 OBJEM = $(DIREM)/main.o $(DIREM)/ai.o $(DIREM)/display.o $(DIREM)/element.o $(DIREM)/game.o $(DIREM)/io.o $(DIREM)/model.o $(DIREM)/player.o
 EMXX = em++
 EMXXFLAGS = -Wall -O2
-EMLINKFLAGS = -s FULL_ES2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s LLD_REPORT_UNDEFINED -s WASM=1 --preload-file resources --preload-file render
+EMLINKFLAGS = -s FULL_ES2=1 -s FULL_ES3=1 -s USE_GLFW=3 -s LLD_REPORT_UNDEFINED -s WASM=1 --preload-file resources --preload-file render --preload-file Settings
 
 DIR = bin
 BIN = $(DIR)/Othello

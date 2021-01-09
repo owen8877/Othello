@@ -52,7 +52,7 @@ extern void skeyboardCallback(int key, int _x, int _y);
 extern void skeyboardUpCallback(int key, int _x, int _y);
 
 // debugging camera
-Camera camera;
+Camera camera(glm::vec3{0.0f, -3.0f, 10.0f}, glm::vec3{0.0f, 0.0f, 1.0f}, -90, -60);
 float lastX = screenWidth / 2.0f;
 float lastY = screenHeight / 2.0f;
 bool firstMouse = true;
@@ -119,17 +119,42 @@ void initLights() {
     };
     directionalLightCap = 1;
 
-    pointLights = {
-            {.enabled = false},
-            {.enabled = false},
-            {.enabled = false},
-            {.enabled = false},
-    };
-    pointLightCap = 0;
-
     glm::vec3 e1 = {1.0, 0.0, 0.0};
     glm::vec3 e2 = {0.0, 1.0, 0.0};
     glm::vec3 e3 = {0.0, 0.0, 1.0};
+    float radius = 6.0f;
+    pointLights = {
+            {
+                    .position {radius, radius * sqrt(3), radius + TABLE_HEIGHT},
+                    .ambient = ambient,
+                    .diffuse = diffuse,
+                    .specular = specular,
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {
+                    .position {radius, -radius * sqrt(3), radius + TABLE_HEIGHT},
+                    .ambient = ambient,
+                    .diffuse = diffuse,
+                    .specular = specular,
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {
+                    .position {-radius * 2, 0, radius + TABLE_HEIGHT},
+                    .ambient = ambient,
+                    .diffuse = diffuse,
+                    .specular = specular,
+                    .constant = 1.0f,
+                    .linear = 0.09f,
+                    .quadratic = 0.032,
+            },
+            {.enabled = false},
+    };
+    pointLightCap = 3;
+
     spotLights = {
             {
                     // position determined by camera!
@@ -142,44 +167,11 @@ void initLights() {
                     .cutOff = glm::cos(glm::radians(12.0f)),
                     .outerCutOff = glm::cos(glm::radians(15.0f)),
             },
-            {
-                    .position {3, 3 * sqrt(3), 3},
-                    .direction {-3, -3 * sqrt(3), -3 + 1},
-                    .ambient = ambient * e1,
-                    .diffuse = diffuse * e1,
-                    .specular = specular * e1,
-                    .constant = 1.0f,
-                    .linear = 0.09f,
-                    .quadratic = 0.032,
-                    .cutOff = glm::cos(glm::radians(60.0f)),
-                    .outerCutOff = glm::cos(glm::radians(90.0f)),
-            },
-            {
-                    .position {3, -3 * sqrt(3), 3},
-                    .direction {-3, 3 * sqrt(3), -3 + 1},
-                    .ambient = ambient * e2,
-                    .diffuse = diffuse * e2,
-                    .specular = specular * e2,
-                    .constant = 1.0f,
-                    .linear = 0.09f,
-                    .quadratic = 0.032,
-                    .cutOff = glm::cos(glm::radians(60.0f)),
-                    .outerCutOff = glm::cos(glm::radians(90.0f)),
-            },
-            {
-                    .position {-6, 0, 3},
-                    .direction {6, 0, -3 + 1},
-                    .ambient = ambient * e3,
-                    .diffuse = diffuse * e3,
-                    .specular = specular * e3,
-                    .constant = 1.0f,
-                    .linear = 0.09f,
-                    .quadratic = 0.032,
-                    .cutOff = glm::cos(glm::radians(60.0f)),
-                    .outerCutOff = glm::cos(glm::radians(90.0f)),
-            },
+            {.enabled = false},
+            {.enabled = false},
+            {.enabled = false},
     };
-    spotLightCap = 4;
+    spotLightCap = 1;
 }
 
 GLFWwindow *initGLFW() {
@@ -742,21 +734,25 @@ vector<Vertex_C> getAxisFrames() {
     };
 }
 
-vector<Vertex_C> getBlackValidHint() {
+vector<Vertex_NT> getBlackValidHint() {
     return {
-            {{-0.5f, -0.5f, 0.0f}, {0.8f, 0.8f, 0.8f}},
-            {{-0.5f, 0.5f,  0.0f}, {0.8f, 0.8f, 0.8f}},
-            {{0.5f,  0.5f,  0.0f}, {0.8f, 0.8f, 0.8f}},
-            {{0.5f,  -0.5f, 0.0f}, {0.8f, 0.8f, 0.8f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
+            {{0.5f, -0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
+            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
     };
 }
 
-vector<Vertex_C> getWhiteValidHint() {
+vector<Vertex_NT> getWhiteValidHint() {
     return {
-            {{-0.5f, -0.5f, 0.0f}, {0.2f, 0.2f, 0.2f}},
-            {{-0.5f, 0.5f,  0.0f}, {0.2f, 0.2f, 0.2f}},
-            {{0.5f,  0.5f,  0.0f}, {0.2f, 0.2f, 0.2f}},
-            {{0.5f,  -0.5f, 0.0f}, {0.2f, 0.2f, 0.2f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{0.5f, -0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
     };
 }
 
@@ -839,7 +835,7 @@ void displayThread(const bool *gameEnds) {
     lightShader.use();
     lightShader.setFloat("material.shininess", 32.0f);
 
-    int boxDiffuseTex, boxSpecularTex, ceramicTileDiffuseTex, blankTex, paletteTex, simpleStoneTex;
+    int boxDtex, boxStex, ceramicTileDtex, blankTex, paletteTex, stoneDtex, tableDtex;
     {
         auto wrapper = [](auto name, int glt) {
             int id = loadTexture(filesystem::path((boost::format("resources/textures/%1%") % name).str()).c_str());
@@ -847,21 +843,23 @@ void displayThread(const bool *gameEnds) {
             glBindTexture(GL_TEXTURE_2D, id);
             return id;
         };
-        boxDiffuseTex = wrapper("container.png", GL_TEXTURE0);
-        boxSpecularTex = wrapper("container-specular.png", GL_TEXTURE1);
-        ceramicTileDiffuseTex = wrapper("ceramic-tile.jpg", GL_TEXTURE2);
+        boxDtex = wrapper("container.png", GL_TEXTURE0);
+        boxStex = wrapper("container-specular.png", GL_TEXTURE1);
+        ceramicTileDtex = wrapper("ceramic-tile.jpg", GL_TEXTURE2);
         blankTex = wrapper("black.png", GL_TEXTURE3);
         paletteTex = wrapper("palette.png", GL_TEXTURE4);
-        simpleStoneTex = wrapper("simple-stone.png", GL_TEXTURE5);
+        stoneDtex = wrapper("simple-stone.png", GL_TEXTURE5);
+        tableDtex = wrapper("table.png", GL_TEXTURE6);
     }
 
     RenderResource axisFrames = RenderResource(getAxisFrames(), GL_LINES);
-    RenderResource blackValidHint = RenderResource(getBlackValidHint(), GL_QUADS);
-    RenderResource whiteValidHint = RenderResource(getWhiteValidHint(), GL_QUADS);
-    RenderResource cube = RenderResource(getCubeVertices(), GL_TRIANGLES, boxDiffuseTex, boxSpecularTex);
-    RenderResource stone = RenderResource(getCylinderVertices(), GL_TRIANGLES, simpleStoneTex, boxSpecularTex);
+    RenderResource blackValidHint = RenderResource(getBlackValidHint(), GL_TRIANGLES, paletteTex, paletteTex);
+    RenderResource whiteValidHint = RenderResource(getWhiteValidHint(), GL_TRIANGLES, paletteTex, paletteTex);
+    RenderResource cube = RenderResource(getCubeVertices(), GL_TRIANGLES, boxDtex, boxStex);
+    RenderResource table = RenderResource(getCubeVertices(), GL_TRIANGLES, tableDtex, blankTex);
+    RenderResource stone = RenderResource(getCylinderVertices(), GL_TRIANGLES, stoneDtex, boxStex);
     RenderResource light = RenderResource(getCubeVertices(), GL_TRIANGLES, -1, -1);
-    RenderResource floor = RenderResource(getFloorVertices(), GL_TRIANGLES, ceramicTileDiffuseTex, blankTex);
+    RenderResource floor = RenderResource(getFloorVertices(), GL_TRIANGLES, ceramicTileDtex, blankTex);
 
     printf("Textures loaded.\n");
 
@@ -898,8 +896,7 @@ void displayThread(const bool *gameEnds) {
 
         // TODO: Update zoom as well
 
-//        glm::mat4 viewMat = camera.GetViewMatrix();
-        glm::mat4 viewMat = glm::lookAt(camera.Position, {0, 0, 0}, {0, 0, 1});
+        glm::mat4 viewMat = camera.GetViewMatrix();
 
         lightShader.use();
         lightShader.setVec3("viewPos", camera.Position);
@@ -925,27 +922,39 @@ void displayThread(const bool *gameEnds) {
         updateLights(lightShader);
 
         drawTable(); // TODO
-        drawStone(); // TODO
 
         // Objects needed to be lightened
         lightShader.use();
         lightShader.setInt("material.diffuse", 0);
         lightShader.setInt("material.specular", 1);
 
+        // Table
+        {
+            lightShader.use();
+            auto tableModelMat = glm::mat4(1.0f);
+            tableModelMat = glm::translate(tableModelMat, glm::vec3{0.0, 0.0, TABLE_HEIGHT});
+            tableModelMat = glm::scale(tableModelMat, glm::vec3{TABLE_SIZE, TABLE_SIZE, TABLE_THICKNESS});
+            lightShader.setMat4("model", tableModelMat);
+            table.draw();
+        }
+
+        // Cursor
+        {
+
+        }
+
         // Stone
         if (Game::getGameStatus() != Idle) {
             for (auto s : stones) {
-                if ((s.getColor() == BlackValid) || (s.getColor() == WhiteValid) ||
-                    (s.getColor() == Valid)) {
-                    continue;
+                if ((s.getColor() == BlackValid) || (s.getColor() == WhiteValid) || (s.getColor() == Valid)) {
                     if ((Game::getGameStatus() == Playing) && (Settings::pieceAssistance)) {
                         if (getValidTag(Game::getSideFlag()) & s.getColor()) {
-                            auto stoneModelMat = glm::mat4(1.0f);
-                            stoneModelMat = glm::translate(stoneModelMat, {s.getX(), s.getY(), s.getZ()});
-                            stoneModelMat = glm::translate(stoneModelMat, {0.0, 0.0, 0.0001});
-                            stoneModelMat = glm::scale(stoneModelMat, {STONE_INTERVAL, STONE_INTERVAL, 1});
-                            withColorShader.use();
-                            withColorShader.setMat4("model", stoneModelMat);
+                            auto hintModelMat = glm::mat4(1.0f);
+                            hintModelMat = glm::translate(hintModelMat, {s.getX(), s.getY(), s.getZ()});
+                            hintModelMat = glm::translate(hintModelMat, {0.0, 0.0, 0.0001});
+                            hintModelMat = glm::scale(hintModelMat, {STONE_INTERVAL, STONE_INTERVAL, 1});
+                            lightShader.use();
+                            lightShader.setMat4("model", hintModelMat);
 
                             if (Game::getSideFlag() == BLACK_SIDE) {
                                 blackValidHint.draw();
@@ -956,13 +965,9 @@ void displayThread(const bool *gameEnds) {
                         }
                     }
                 } else {
-//                if (Settings::showBigBall) {
-//                    glLineWidth(2);
-//                    glutWireSphere(10.0, 30, 30);
-//                }
                     auto stoneModelMat = glm::mat4(1.0f);
                     stoneModelMat = glm::translate(stoneModelMat, glm::vec3{s.getX(), s.getY(), s.getZ()});
-                    stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(
+                    stoneModelMat = glm::rotate(stoneModelMat, glm::radians(
                             atan2f(s.getAxisy(), s.getAxisx() / M_PI) * 180.0f - 90.0f), {0.0f, 0.0f, 1.0f});
 
                     if ((s.getAxisy() != 0.0) && (s.getAxisx() != 0.0)) {
@@ -973,49 +978,29 @@ void displayThread(const bool *gameEnds) {
                                                      s.getAxisy()))) *
                                        180.0f / M_PI;
                         stoneModelMat = glm::rotate(stoneModelMat,
-                                                    glm::degrees(degree),
+                                                    glm::radians(degree),
                                                     glm::vec3{s.getAxisy(), -s.getAxisx(), 0.0});
                     }
-                    stoneModelMat = glm::rotate(stoneModelMat, glm::degrees((float) s.getAngle()),
+                    stoneModelMat = glm::rotate(stoneModelMat, glm::radians((float) s.getAngle()),
                                                 glm::vec3{0.0f, 1.0f, 0.0f});
-                    stoneModelMat = glm::translate(stoneModelMat, glm::vec3{0.0, 0.0, STONE_HEIGHT / 4});
-
+                    stoneModelMat = glm::translate(stoneModelMat, glm::vec3{0.0, 0.0, STONE_HEIGHT});
                     if (s.getColor() == White) {
-                        stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(180.0f), glm::vec3{0.0, 1.0, 0.0});
-                        stoneModelMat = glm::translate(stoneModelMat, glm::vec3{0.0, 0.0, -STONE_HEIGHT / 2});
-//                        glScaled(1.0, 1.0, -1.0);
-//                        glTranslated(0.0, 0.0, -STONE_HEIGHT / 2);
+                        stoneModelMat = glm::rotate(stoneModelMat, glm::radians(180.0f), glm::vec3{0.0, 1.0, 0.0});
                     }
-
                     stoneModelMat = glm::scale(stoneModelMat, glm::vec3{STONE_RADIUS, STONE_RADIUS, STONE_HEIGHT});
 
                     lightShader.use();
                     lightShader.setMat4("model", stoneModelMat);
                     stone.draw();
-//                    glPushMatrix();
-//                    glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
-//                    glColor3d(0.0, 0.0, 0.0);
-//                    glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
-//                    glPopMatrix();
-//                    glTranslated(0.0, 0.0, -STONE_HEIGHT / 4);
-//                    glColor3d(1.0, 1.0, 1.0);
-//                    glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
-//                    glPopMatrix();
                 }
             }
-
-
-//            auto stoneModelMat = glm::mat4(1.0f);
-//            stoneModelMat = glm::translate(stoneModelMat, {0, 0, 2});
-//            stoneModelMat = glm::rotate(stoneModelMat, glm::degrees(0.0f), {0.0f, 1.0f, 0.0f});
-//            lightShader.setMat4("model", stoneModelMat);
-//            stone.draw();
         }
 
         // Floor
         {
             auto floorModelMat = glm::mat4(1.0f);
-            floorModelMat = glm::scale(floorModelMat, glm::vec3(30.0f));
+            floorModelMat = glm::scale(floorModelMat, glm::vec3(60.0f));
+            lightShader.use();
             lightShader.setMat4("model", floorModelMat);
             floor.draw();
         }
