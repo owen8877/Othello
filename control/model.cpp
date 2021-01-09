@@ -1,12 +1,13 @@
 #include "model.h"
 #include "../core/game.h"
+#include "../render/camera.h"
 
 using namespace std;
 
 extern bool isFocus;
 extern float fogColorFocus[];
 extern float fogDensity;
-extern double theta, fai;
+extern Camera camera;
 
 vector<Stone> stones;
 double lightDirAngle = 0;
@@ -94,8 +95,7 @@ void refreshModel(bool lifting) {
 int updateRenderStatus(int status) {
     switch (status) {
         case 0: // Idle
-            theta = -90.5f;
-            fai = 20.0f;
+            camera.resetYawPitch();
             if (Game::getGameStatus() != Playing) {
                 status = 0;
             } else {

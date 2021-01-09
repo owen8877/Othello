@@ -2,10 +2,9 @@
 #include "../core/game.h"
 #include "io.h"
 #include <fstream>
+#include <GLFW/glfw3.h>
 
 extern int screenSize, screenHeight, screenWidth;
-extern double theta, fai;
-extern double zoom;
 extern double floatingx, floatingy;
 extern bool isFocus;
 
@@ -231,10 +230,10 @@ void renewMouseStat(double x, double y, int button) {
     static double x_old = 0, y_old = 0;
     if (Game::getGameStatus() == Lifting) {
         if (LEFT_MOUSE_BUTTON & button & button_old) {
-            theta -= 100 * (x - x_old);
-            fai += 100 * (y - y_old);
-            if (fai > 89.0) fai = 89.0;
-            if (fai < 1.0) fai = 1.0;
+//            theta -= 100 * (x - x_old);
+//            fai += 100 * (y - y_old);
+//            if (fai > 89.0) fai = 89.0;
+//            if (fai < 1.0) fai = 1.0;
         }
     } else if (Game::getGameStatus() == Playing) {
         //They are actually playing.
@@ -265,52 +264,47 @@ void renewMouseStat(double x, double y, int button) {
     y_old = y;
 }
 
-double zoomScale(double zoom, bool zoomOut) {
-    if (zoomOut) return zoom * 0.95 + MAX_ZOOM * 0.05;
-    else return zoom * 0.95 + MIN_ZOOM * 0.05;
-}
-
 // Mouse Callback
-void mouseKey(int button, int state, int x, int y) {
-//    if (GLUT_DOWN == state) switch (button) {
-//        case GLUT_LEFT_BUTTON:
-//            mouseButton |= LEFT_MOUSE_BUTTON;
-//            break;
-//        case GLUT_MIDDLE_BUTTON:
-//            mouseButton |= MIDDLE_MOUSE_BUTTON;
-//            break;
-//        case GLUT_RIGHT_BUTTON:
-//            mouseButton |= RIGHT_MOUSE_BUTTON;
-//            break;
-//    }
-//    else switch (button) {
-//        case GLUT_LEFT_BUTTON:
-//            mouseButton &= ~LEFT_MOUSE_BUTTON;
-//            break;
-//        case GLUT_MIDDLE_BUTTON:
-//            mouseButton &= ~MIDDLE_MOUSE_BUTTON;
-//            break;
-//        case GLUT_RIGHT_BUTTON:
-//            mouseButton &= ~RIGHT_MOUSE_BUTTON;
-//            break;
-//    }
-//    if (GLUT_WHEEL_DOWN == button) zoom = zoomScale(zoom, true);
-//    if (GLUT_WHEEL_UP == button) zoom = zoomScale(zoom, false);
-//
-//    renewMouseStat((double) (x - screenWidth/2.0)/screenSize,
-//                (double) (screenHeight/2.0 - y)/screenSize,
-//                mouseButton);
-//
-//    if (Game::getGameStatus() != Playing) return;
-//    if (state != GLUT_UP) return;
-//    if ((GLUT_WHEEL_DOWN == button)||(GLUT_WHEEL_UP == button)) return;
-//
-//    int step = (screenSize / BOARD_SIZE);
-//
-//    yBuffer = (x - screenWidth / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
-//    xBuffer = (y - screenHeight / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
-//    hasMouseInput = true;
-//    return;
+void handleMouseButton(GLFWwindow* window, int button, int action, int mods) {
+    double x, y;
+    glfwGetCursorPos(window, &x, &y);
+
+    if (action == GLFW_PRESS) switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            mouseButton |= LEFT_MOUSE_BUTTON;
+            break;
+        case GLFW_MOUSE_BUTTON_MIDDLE:
+            mouseButton |= MIDDLE_MOUSE_BUTTON;
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+        default:
+            mouseButton |= RIGHT_MOUSE_BUTTON;
+            break;
+    } else switch (button) {
+        case GLFW_MOUSE_BUTTON_LEFT:
+            mouseButton &= ~LEFT_MOUSE_BUTTON;
+            break;
+        case GLFW_MOUSE_BUTTON_MIDDLE:
+            mouseButton &= ~MIDDLE_MOUSE_BUTTON;
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+        default:
+            mouseButton &= ~RIGHT_MOUSE_BUTTON;
+            break;
+    }
+
+    renewMouseStat((double) (x - screenWidth / 2.0) / screenSize,
+                   (double) (screenHeight / 2.0 - y) / screenSize,
+                   mouseButton);
+
+    if (Game::getGameStatus() != Playing) return;
+    if (button != GLFW_RELEASE) return;
+
+    int step = (screenSize / BOARD_SIZE);
+
+    yBuffer = (x - screenWidth / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
+    xBuffer = (y - screenHeight / 2 + screenSize / 2 + screenSize) / step - BOARD_SIZE + 1;
+    hasMouseInput = true;
 }
 
 //Mouse Passive Callback
@@ -332,8 +326,8 @@ void update() {
     if (Settings::btCtrl && Settings::btShift) if (!kbstat['\x11'] && !kbstat['\x0F']) isFocus = false;
     if (Settings::btCtrl && !Settings::btShift) if (!kbstat['\x11']) isFocus = false;
     if (!Settings::btCtrl && Settings::btShift) if (!kbstat['\x0F']) isFocus = false;
-    if (kbstat['w'] && (Game::getGameStatus() == Playing)) fai = 1.0 * 0.05 + fai * 0.95;
-    if (kbstat['s'] && (Game::getGameStatus() == Playing)) fai = 50.0 * 0.05 + fai * 0.95;
+//    if (kbstat['w'] && (Game::getGameStatus() == Playing)) fai = 1.0 * 0.05 + fai * 0.95;
+//    if (kbstat['s'] && (Game::getGameStatus() == Playing)) fai = 50.0 * 0.05 + fai * 0.95;
 }
 
 // Keyboard Callback

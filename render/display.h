@@ -16,20 +16,7 @@ const int CIRCLE_MAX = 30;
 extern double theta, fai;
 extern int screenSize, screenWidth, screenHeight;
 
-// void initOpenGLOptions();
-// void drawCircle(double, double, double, Status);
-// void drawHint(double, double, double);
-// void drawBoard();
-// void drawPiece();
-// void drawStone();
-// void drawBackGround();
-// void display();
-// void reshape(int, int);
 void displayThread(const bool *);
-
-extern void mouseKey(int, int, int, int);
-
-extern void mouseMotion(int, int);
 
 struct DirectionalLight {
     bool enabled = true;

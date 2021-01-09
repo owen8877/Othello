@@ -14,7 +14,6 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
 
 #include <cmath>
 #include <vector>
@@ -22,8 +21,6 @@
 #include <boost/range/adaptor/indexed.hpp>
 
 int screenSize = 80 * BOARD_SIZE, screenWidth = 80 * BOARD_SIZE, screenHeight = 80 * BOARD_SIZE;
-double zoom = DEFAULT_ZOOM;
-double theta = -95.5, fai = 20.0;
 double floatingx = 0.0, floatingy = 0.0;
 float backGroundColor = 0.304;
 float fogDensity = 0.00f;
@@ -43,6 +40,10 @@ extern void refreshModel(bool lifting);
 
 extern int updateRenderStatus(int status);
 
+extern void handleMouseButton(GLFWwindow* window, int button, int action, int mods);
+
+extern void mouseMotion(int x, int y);
+
 extern void keyboardCallback(unsigned char key, int _x, int _y);
 
 extern void keyboardUpCallback(unsigned char key, int _x, int _y);
@@ -52,7 +53,7 @@ extern void skeyboardCallback(int key, int _x, int _y);
 extern void skeyboardUpCallback(int key, int _x, int _y);
 
 // debugging camera
-Camera camera(glm::vec3{0.0f, -3.0f, 10.0f}, glm::vec3{0.0f, 0.0f, 1.0f}, -90, -60);
+Camera camera(glm::vec3{0.0f, -3.0f, 10.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
 float lastX = screenWidth / 2.0f;
 float lastY = screenHeight / 2.0f;
 bool firstMouse = true;
@@ -81,9 +82,6 @@ int spotLightCap;
 vector<DirectionalLight> directionalLights;
 vector<PointLight> pointLights;
 vector<SpotLight> spotLights;
-
-// matrices
-glm::mat4 projMat;
 
 
 //======================================================================================================================
@@ -197,6 +195,7 @@ GLFWwindow *initGLFW() {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, handleMouseButton);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetWindowSizeCallback(window, reshape_callback);
 
@@ -273,7 +272,9 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     lastX = xpos;
     lastY = ypos;
 
-    camera.ProcessMouseMovement(xoffset, yoffset);
+//    camera.ProcessMouseMovement(xoffset, yoffset);
+
+    mouseMotion(xpos, ypos);
 }
 
 void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
@@ -286,9 +287,6 @@ void reshape_core(int width, int height) {
     screenWidth = width;
     screenHeight = height;
     glViewport(0, 0, width, height);
-    float lr_ratio = (float) screenWidth / (float) screenSize;
-    float bt_ratio = (float) screenHeight / (float) screenSize;
-    projMat = glm::frustum(-lr_ratio, lr_ratio, -bt_ratio, bt_ratio, 1.0f, 1000.0f);
 }
 
 void reshape_callback(GLFWwindow *window, int width, int height) {
@@ -341,130 +339,6 @@ void updateLights(Shader &shader) {
     for (auto const &spotLight: spotLights | boost::adaptors::indexed(0)) {
         spotLight.value().apply(shader, spotLight.index());
     }
-}
-
-void drawStone() {
-//     if (Game::getGameStatus() == Idle) return;
-//     for (auto stone : stones) {
-//         if ((stone.getColor() == BlackValid) || (stone.getColor() == WhiteValid) || (stone.getColor() == Valid)) {
-//             if ((Game::getGameStatus() == Playing) && (Settings::pieceAssistance)) {
-//                 if (getValidTag(Game::getSideFlag()) & stone.getColor()) {
-//                     glMatrixMode(GL_MODELVIEW);
-//                     glPushMatrix();
-//                         glTranslated(stone.getX(), stone.getY(), stone.getZ());
-
-//                         glTranslated(0.0, 0.0, 0.0001);
-//                         if (Game::getSideFlag() == BLACK_SIDE) glColor3d(0.2, 0.2, 0.2);
-//                         if (Game::getSideFlag() == WHITE_SIDE) glColor3d(0.8, 0.8, 0.8);
-//                         glBegin(GL_QUADS);
-//                             glVertex3d(-STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
-//                             glVertex3d(-STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
-//                             glVertex3d(STONE_INTERVAL / 2.0, STONE_INTERVAL / 2.0, 0.0);
-//                             glVertex3d(STONE_INTERVAL / 2.0, -STONE_INTERVAL / 2.0, 0.0);
-//                         glEnd();
-//                     glPopMatrix();
-//                 }
-//             }
-//             continue;
-//         }
-//         glMatrixMode(GL_MODELVIEW);
-//         glPushMatrix();
-//             glTranslated(stone.getX(), stone.getY(), stone.getZ());
-//             if (Settings::showBigBall) { glLineWidth(2); glutWireSphere(10.0, 30, 30); }
-//             glRotated((atan2(stone.getAxisy(), stone.getAxisx() / M_PI) * 180 - 90), 0.0, 0.0, 1.0);
-//             if ((stone.getAxisy()!=0.0) && (stone.getAxisx()!=0.0))
-//                 glRotated((atan2(stone.getAxisz(), sqrt(stone.getAxisx()*stone.getAxisx()+stone.getAxisy()*stone.getAxisy()))) * 180 / M_PI, stone.getAxisy(), -stone.getAxisx(), 0.0);
-//             glRotated(stone.getAngle(), 0.0, 1.0, 0.0);
-//             glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
-
-//             if (stone.getColor() == White) { glScaled(1.0, 1.0, -1.0); glTranslated(0.0, 0.0, -STONE_HEIGHT / 2); }
-//             glPushMatrix();
-//                 glTranslated(0.0, 0.0, STONE_HEIGHT / 4);
-//                 glColor3d(0.0, 0.0, 0.0);
-//                 glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
-//             glPopMatrix();
-//             glTranslated(0.0, 0.0, -STONE_HEIGHT / 4);
-//             glColor3d(1.0, 1.0, 1.0);
-//             glutSolidCylinder(STONE_RADIUS, STONE_HEIGHT / 2, 20, 1);
-//         glPopMatrix();
-//     }
-}
-
-void drawCursor() {
-//     if (Game::getGameStatus() != Playing) return;
-
-//     glEnable(GL_LIGHTING);
-//     glTranslated(0.0, 0.0, 0.01);
-
-//     double alignx = int(floatingx * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
-//     double aligny = int(floatingy * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
-//     double tiny = 1.0 / BOARD_SIZE;
-
-//     if (alignx < -0.5) return;
-//     if (aligny < -0.5) return;
-//     if (alignx > 0.5 - 1.0 / BOARD_SIZE) return;
-//     if (aligny > 0.5 - 1.0 / BOARD_SIZE) return;
-//     glBegin(GL_QUAD_STRIP);
-//         glColor4d(0.0, 1.0, 1.0, 0.7);
-//         glVertex3d(alignx, aligny, 0.0);
-//         glVertex3d(alignx+tiny, aligny, 0.0);
-//         glVertex3d(alignx, aligny+tiny, 0.0);
-//         glVertex3d(alignx+tiny, aligny+tiny, 0.0);
-//     glEnd();
-}
-
-void drawTable() {
-//     glMatrixMode(GL_MODELVIEW);
-//     if (Settings::showAxis) {
-//         glDisable(GL_LIGHTING);
-//         glPushMatrix();
-//             glColor3d(1.0, 0.0, 0.0);
-//             glBegin(GL_LINES);
-//                 glVertex3d(0.0, 0.0, 0.0);
-//                 glVertex3d(1000.0, 0.0, 0.0);
-//             glEnd();
-//             glColor3d(0.0, 1.0, 0.0);
-//             glBegin(GL_LINES);
-//                 glVertex3d(0.0, 0.0, 0.0);
-//                 glVertex3d(0.0, 1000.0, 0.0);
-//             glEnd();
-//             glColor3d(0.0, 0.0, 1.0);
-//             glBegin(GL_LINES);
-//                 glVertex3d(0.0, 0.0, 0.0);
-//                 glVertex3d(0.0, 0.0, 1000.0);
-//             glEnd();
-//         glPopMatrix();
-//     }
-
-//     glEnable(GL_LIGHTING);
-
-//     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 1.0);
-//     glPushMatrix();
-//     glTranslated(0.0, 0.0, TABLE_HEIGHT);
-//     glScaled(TABLE_SIZE , TABLE_SIZE , TABLE_THICKNESS);
-//     glColor4d(0.6, 0.6, 0.6, 1.0);
-//     glutWireCube(1);
-//     glColor4d(1.0, 1.0, 1.0, 0.6);
-//     glutSolidCube(1);
-//     glTranslated(0.0, 0.0, 0.5);
-//     double scaleCoeffiency = BOARD_SIZE * STONE_INTERVAL / TABLE_SIZE;
-//     glScaled(scaleCoeffiency, scaleCoeffiency, scaleCoeffiency);
-//     glLineWidth(3);
-//     glBegin(GL_LINES);
-//         for (double i = 1.0; i < BOARD_SIZE; ++i) {
-//             glVertex3d(i / BOARD_SIZE - 0.5, -0.5, 0.0);
-//             glVertex3d(i / BOARD_SIZE - 0.5, 0.5, 0.0);
-//         }
-//     glEnd();
-
-//     glBegin(GL_LINES);
-//         for (double i = 1.0; i < BOARD_SIZE; ++i) {
-//             glVertex3d(-0.5, i / BOARD_SIZE - 0.5, 0.0);
-//             glVertex3d(0.5, i / BOARD_SIZE - 0.5, 0.0);
-//         }
-//     glEnd();
-//     drawCursor();
-//     glPopMatrix();
 }
 
 struct Vertex_NT {
@@ -586,17 +460,6 @@ vector<Vertex_NT> getCubeVertices() {
             {{0.5f,  0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {1.0f, 1.0f}},
             {{-0.5f, 0.5f,  0.5f},  {0.0f,  1.0f,  0.0f},  {0.0f, 1.0f}},
             {{-0.5f, 0.5f,  -0.5f}, {0.0f,  1.0f,  0.0f},  {0.0f, 0.0f}},
-    };
-}
-
-vector<Vertex_NT> getSquareVertices() {
-    return {
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
-            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}},
     };
 }
 
@@ -734,25 +597,14 @@ vector<Vertex_C> getAxisFrames() {
     };
 }
 
-vector<Vertex_NT> getBlackValidHint() {
+vector<Vertex_NT> getUniformSquareVertices(const glm::vec2 tex) {
     return {
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-            {{0.5f, -0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.9f, 0.9f}},
-    };
-}
-
-vector<Vertex_NT> getWhiteValidHint() {
-    return {
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
-            {{0.5f, -0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
-            {{-0.5f,  0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.1f, 0.7f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
+            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
+            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {tex[0], tex[1]}},
     };
 }
 
@@ -853,8 +705,12 @@ void displayThread(const bool *gameEnds) {
     }
 
     RenderResource axisFrames = RenderResource(getAxisFrames(), GL_LINES);
-    RenderResource blackValidHint = RenderResource(getBlackValidHint(), GL_TRIANGLES, paletteTex, paletteTex);
-    RenderResource whiteValidHint = RenderResource(getWhiteValidHint(), GL_TRIANGLES, paletteTex, paletteTex);
+    RenderResource blackValidHint = RenderResource(getUniformSquareVertices({0.9f, 0.1f}), GL_TRIANGLES, paletteTex,
+                                                   paletteTex);
+    RenderResource whiteValidHint = RenderResource(getUniformSquareVertices({0.1f, 0.3f}), GL_TRIANGLES, paletteTex,
+                                                   paletteTex);
+    RenderResource cursor = RenderResource(getUniformSquareVertices({0.3f, 0.3f}), GL_TRIANGLES, paletteTex,
+                                           paletteTex);
     RenderResource cube = RenderResource(getCubeVertices(), GL_TRIANGLES, boxDtex, boxStex);
     RenderResource table = RenderResource(getCubeVertices(), GL_TRIANGLES, tableDtex, blankTex);
     RenderResource stone = RenderResource(getCylinderVertices(), GL_TRIANGLES, stoneDtex, boxStex);
@@ -896,6 +752,10 @@ void displayThread(const bool *gameEnds) {
 
         // TODO: Update zoom as well
 
+        float lr_ratio = (float) screenWidth / (float) screenSize * camera.Zoom;
+        float bt_ratio = (float) screenHeight / (float) screenSize * camera.Zoom;
+        glm::mat4 projMat = glm::frustum(-lr_ratio, lr_ratio, -bt_ratio, bt_ratio, 1.0f, 1000.0f);
+
         glm::mat4 viewMat = camera.GetViewMatrix();
 
         lightShader.use();
@@ -921,8 +781,6 @@ void displayThread(const bool *gameEnds) {
         updateFog(); // TODO
         updateLights(lightShader);
 
-        drawTable(); // TODO
-
         // Objects needed to be lightened
         lightShader.use();
         lightShader.setInt("material.diffuse", 0);
@@ -939,8 +797,27 @@ void displayThread(const bool *gameEnds) {
         }
 
         // Cursor
-        {
+        if (Game::getGameStatus() == Playing) {
+            double alignx = int(floatingx * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
+            double aligny = int(floatingy * BOARD_SIZE + BOARD_SIZE) / (BOARD_SIZE + 0.0) - 1.0;
+            double tiny = 1.0 / BOARD_SIZE;
 
+//            printf("alignx: %.2f, aligny: %.2f.\n", alignx, aligny);
+            if (alignx >= -0.5 && aligny >= -0.5 && alignx <= 0.5 - 1.0 / BOARD_SIZE &&
+                aligny <= 0.5 - 1.0 / BOARD_SIZE) {
+                lightShader.use();
+                auto cursorModelMat = glm::mat4(1.0f);
+                cursorModelMat = glm::translate(cursorModelMat, glm::vec3{0.0, 0.0, TABLE_HEIGHT});
+                cursorModelMat = glm::scale(cursorModelMat, glm::vec3{TABLE_SIZE, TABLE_SIZE, TABLE_THICKNESS});
+                cursorModelMat = glm::translate(cursorModelMat, glm::vec3{0.0, 0.0, 0.5});
+                cursorModelMat = glm::scale(cursorModelMat,
+                                            glm::vec3{static_cast<float>(BOARD_SIZE * STONE_INTERVAL / TABLE_SIZE)});
+                cursorModelMat = glm::translate(cursorModelMat,
+                                                glm::vec3{alignx + tiny / 2, aligny + tiny / 2, 0.01});
+                cursorModelMat = glm::scale(cursorModelMat, glm::vec3{static_cast<float>(tiny)});
+                lightShader.setMat4("model", cursorModelMat);
+                cursor.draw();
+            }
         }
 
         // Stone

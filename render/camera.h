@@ -21,11 +21,14 @@ enum Camera_Movement {
 };
 
 // Default camera values
-const float YAW = 100.0f;
-const float PITCH = -30.0f;
+const float YAW = -90.0f;
+const float PITCH = -70.0f;
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.2f;
-const float ZOOM = 45.0f;
+const float ZOOM = 1.0f;
+const float ZOOM_MIN = 0.5f;
+const float ZOOM_MAX = 1.5f;
+const float ZOOM_SPEED = 0.1f;
 
 
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
@@ -66,6 +69,11 @@ public:
         updateCameraVectors();
     }
 
+    void resetYawPitch() {
+        Yaw = YAW;
+        Pitch = PITCH;
+    }
+
     // returns the view matrix calculated using Euler Angles and the LookAt Matrix
     glm::mat4 GetViewMatrix() const {
         return glm::lookAt(Position, Position + Front, Up);
@@ -90,7 +98,7 @@ public:
     }
 
     // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
-    void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
+    void ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch = true) {
         xoffset *= MouseSensitivity;
         yoffset *= MouseSensitivity;
 
@@ -111,11 +119,7 @@ public:
 
     // processes input received from a mouse scroll-wheel event. Only requires input on the vertical wheel-axis
     void ProcessMouseScroll(float yoffset) {
-        Zoom -= (float) yoffset;
-        if (Zoom < 1.0f)
-            Zoom = 1.0f;
-        if (Zoom > 45.0f)
-            Zoom = 45.0f;
+        Zoom = glm::clamp(Zoom - (float) yoffset * ZOOM_SPEED, ZOOM_MIN, ZOOM_MAX);
     }
 
 private:
