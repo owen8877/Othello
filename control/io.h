@@ -19,7 +19,7 @@ int readRecord();
 
 void mouseKey(int button, int state, int x, int y);
 
-void mouseMotion(int x, int y);
+void handleMouseMotion(int x, int y);
 
 Piece getPieceFromMouse(bool side);
 

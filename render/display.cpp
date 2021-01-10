@@ -37,22 +37,13 @@ char s_Quit_without_saving[] = "Quit without Saving";
 extern double xcenter, ycenter, zcenter;
 extern vector<Stone> stones;
 
-
 extern void refreshModel(bool lifting);
 
 extern int updateRenderStatus(int status);
 
 extern void handleMouseButton(GLFWwindow *window, int button, int action, int mods);
 
-extern void mouseMotion(int x, int y);
-
-extern void keyboardCallback(unsigned char key, int _x, int _y);
-
-extern void keyboardUpCallback(unsigned char key, int _x, int _y);
-
-extern void skeyboardCallback(int key, int _x, int _y);
-
-extern void skeyboardUpCallback(int key, int _x, int _y);
+extern void handleMouseMotion(int x, int y);
 
 // debugging camera
 Camera camera(glm::vec3{0.0f, -3.0f, 10.0f}, glm::vec3{0.0f, 0.0f, 1.0f});
@@ -65,8 +56,6 @@ bool clipping = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-// New static variables
-
 // lights
 int directionalLightCap;
 int pointLightCap;
@@ -77,20 +66,96 @@ vector<SpotLight> spotLights;
 
 
 //======================================================================================================================
-// Declarations
+// Input handlers
 
-void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+void processInput(GLFWwindow *window) {
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+    if (Game::getGameStatus() == Lifting || clipping) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera.ProcessKeyboard(FORWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera.ProcessKeyboard(BACKWARD, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera.ProcessKeyboard(LEFT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera.ProcessKeyboard(RIGHT, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            camera.ProcessKeyboard(DOWN, deltaTime);
+        if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
+            camera.ProcessKeyboard(LIFT, deltaTime);
+    }
 
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
+    if (glfwGetKey(window, GLFW_KEY_L) && Game::getGameStatus() == Playing) {
+        Game::liftTheTable();
+        camera.Zoom = ZOOM_MAX;
+    }
 
-void reshape_callback(GLFWwindow *window, int width, int height);
+    isFocus = false;
+    if (Settings::btShift) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT)) {
+            isFocus = true;
+        }
+    }
+    if (Settings::btCtrl) {
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL)) {
+            isFocus = true;
+        }
+    }
+}
+
+void framebufferSizeCallback(GLFWwindow *window, int width, int height) {
+    // glfw: whenever the window size changed (by OS or user resize) this callback function executes
+    // make sure the viewport matches the new window dimensions; note that width and
+    // height will be significantly larger than specified on retina displays.
+    glViewport(0, 0, width, height);
+}
+
+void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
+    // glfw: whenever the mouse moves, this callback is called
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+
+    if (Game::getGameStatus() == Lifting) {
+        camera.ProcessMouseMovement(xoffset, yoffset);
+    }
+
+    handleMouseMotion(xpos, ypos);
+}
+
+void scrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+    // glfw: whenever the mouse scroll wheel scrolls, this callback is called
+    camera.ProcessMouseScroll(yoffset);
+}
+
+void reshapeCore(int width, int height) {
+    screenSize = min(width, height);
+    screenWidth = width;
+    screenHeight = height;
+    glViewport(0, 0, width, height);
+}
+
+void reshapeCallback(GLFWwindow *window, int width, int height) {
+#ifdef __EMSCRIPTEN__
+    puts("Resized!");
+#else
+
+#endif
+    reshapeCore(width, height);
+}
 
 //======================================================================================================================
 // Init
-
-void getTextureMap(vector<unsigned int> &mapId);
 
 void initLights() {
     glm::vec3 ambient = {0.25f, 0.25f, 0.25f};
@@ -185,14 +250,14 @@ GLFWwindow *initGLFW() {
         throw std::runtime_error("Failed to create GLFW window");
     }
     glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetCursorPosCallback(window, mouseCallback);
     glfwSetMouseButtonCallback(window, handleMouseButton);
-    glfwSetScrollCallback(window, scroll_callback);
-    glfwSetWindowSizeCallback(window, reshape_callback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetWindowSizeCallback(window, reshapeCallback);
 
     // tell GLFW to capture our mouse
-//    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
 // ---------------------------------------
@@ -220,75 +285,7 @@ void initOpenGLOptions() {
 }
 
 //======================================================================================================================
-// Callbacks
-
-// process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
-void processInput(GLFWwindow *window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (Game::getGameStatus() == Lifting || clipping) {
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            camera.ProcessKeyboard(FORWARD, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            camera.ProcessKeyboard(BACKWARD, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            camera.ProcessKeyboard(LEFT, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            camera.ProcessKeyboard(RIGHT, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-            camera.ProcessKeyboard(DOWN, deltaTime);
-        if (glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS)
-            camera.ProcessKeyboard(LIFT, deltaTime);
-    }
-}
-
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
-    // glfw: whenever the window size changed (by OS or user resize) this callback function executes
-    // make sure the viewport matches the new window dimensions; note that width and
-    // height will be significantly larger than specified on retina displays.
-    glViewport(0, 0, width, height);
-}
-
-void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
-    // glfw: whenever the mouse moves, this callback is called
-    if (firstMouse) {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-//    camera.ProcessMouseMovement(xoffset, yoffset);
-
-    mouseMotion(xpos, ypos);
-}
-
-void scroll_callback(GLFWwindow *window, double xoffset, double yoffset) {
-    // glfw: whenever the mouse scroll wheel scrolls, this callback is called
-    camera.ProcessMouseScroll(yoffset);
-}
-
-void reshape_core(int width, int height) {
-    screenSize = min(width, height);
-    screenWidth = width;
-    screenHeight = height;
-    glViewport(0, 0, width, height);
-}
-
-void reshape_callback(GLFWwindow *window, int width, int height) {
-#ifdef __EMSCRIPTEN__
-    puts("Resized!");
-#else
-
-#endif
-    reshape_core(width, height);
-}
+// Update fog and lights
 
 void updateFog() {
 //     if (Game::getGameStatus() == Pause) {
@@ -334,6 +331,9 @@ void updateLights(Shader &shader) {
         spotLight.value().apply(shader, spotLight.index());
     }
 }
+
+//======================================================================================================================
+// Render structures
 
 struct Vertex_NT {
     float position[3];
@@ -644,16 +644,19 @@ unsigned int loadTexture(char const *path) {
     return textureID;
 }
 
+//======================================================================================================================
+// Display thread
+
 std::function<void()> loop;
 
 void main_loop() { loop(); }
 
-#define __EMSCRIPTEN__
+//#define __EMSCRIPTEN__
 
 void displayThread(const bool *gameEnds) {
     // glutMouseFunc(&mouseKey);
-    // glutMotionFunc(&mouseMotion);
-    // glutPassiveMotionFunc(&mouseMotion);
+    // glutMotionFunc(&handleMouseMotion);
+    // glutPassiveMotionFunc(&handleMouseMotion);
     // glutReshapeFunc(&reshape);
     // glutKeyboardFunc(&keyboardCallback);
     // glutSpecialFunc(&skeyboardCallback);
@@ -665,7 +668,7 @@ void displayThread(const bool *gameEnds) {
     GLFWwindow *window = initGLFW();
     initOpenGLOptions();
     initLights();
-    reshape_core(screenWidth, screenHeight);
+    reshapeCore(screenWidth, screenHeight);
 
     int render_status = 0;
     refreshModel(false);
@@ -752,6 +755,9 @@ void displayThread(const bool *gameEnds) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        glfwPollEvents();
+        processInput(window);
+
 #ifdef __EMSCRIPTEN__
         // Update game
         if (Game::canContinue()) {
@@ -784,24 +790,6 @@ void displayThread(const bool *gameEnds) {
 #else
 
 #endif
-
-        // Input and set projection+view to render
-        processInput(window);
-
-        {//        if (Game::getGameStatus() == Lifting) {
-//            camera.Position = {zoom * cos(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI) + xcenter,
-//                               zoom * sin(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI) + ycenter,
-//                               zoom * cos(fai / 180.0 * M_PI) + zcenter};
-//            glm::vec3 center = {xcenter, ycenter, zcenter};
-//            camera.Front = center - camera.Position;
-//        } else {
-//            camera.Position = {zoom * cos(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI),
-//                               zoom * sin(theta / 180.0 * M_PI) * sin(fai / 180.0 * M_PI),
-//                               zoom * cos(fai / 180.0 * M_PI)};
-//            glm::vec3 center = {0.0, 0.0, TABLE_HEIGHT + TABLE_THICKNESS / 2};
-//            camera.Front = center - camera.Position;
-//        }
-        }
 
         // Bind camera to spotLight0
         spotLights[0].position = camera.Position;
@@ -972,10 +960,7 @@ void displayThread(const bool *gameEnds) {
             axisFrames.draw();
         }
 
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window);
-        glfwPollEvents();
     };
 
 #ifdef __EMSCRIPTEN__

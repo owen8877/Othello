@@ -13,7 +13,6 @@ bool canMouseInput = false;
 bool undo = false;
 short xBuffer, yBuffer;
 int mouseButton = 0;
-int kbstat[256] = {0};
 
 Piece getPieceFromConsole(bool side) {
     printf("Please input your piece :\n");
@@ -308,66 +307,10 @@ void handleMouseButton(GLFWwindow* window, int button, int action, int mods) {
 }
 
 //Mouse Passive Callback
-void mouseMotion(int x, int y) {
+void handleMouseMotion(int x, int y) {
     renewMouseStat((double) (x - screenWidth / 2.0) / screenSize,
                    (double) (screenHeight / 2.0 - y) / screenSize,
                    mouseButton);
-}
-
-void update() {
-    if (kbstat['l'] && (Game::getGameStatus() == Playing)) Game::liftTheTable();
-    if (kbstat['\x1B'] && Settings::inputMehod) {
-        if (Game::getGameStatus() == Playing) Game::pauseGame();
-        else if (Game::getGameStatus() == Pause) Game::resumeGame();
-    }
-    if (kbstat['\x11'] && (Game::getGameStatus() == Lifting) && Settings::btCtrl) isFocus = true;
-    if (kbstat['\x0F'] && (Game::getGameStatus() == Lifting) && Settings::btShift) isFocus = true;
-
-    if (Settings::btCtrl && Settings::btShift) if (!kbstat['\x11'] && !kbstat['\x0F']) isFocus = false;
-    if (Settings::btCtrl && !Settings::btShift) if (!kbstat['\x11']) isFocus = false;
-    if (!Settings::btCtrl && Settings::btShift) if (!kbstat['\x0F']) isFocus = false;
-//    if (kbstat['w'] && (Game::getGameStatus() == Playing)) fai = 1.0 * 0.05 + fai * 0.95;
-//    if (kbstat['s'] && (Game::getGameStatus() == Playing)) fai = 50.0 * 0.05 + fai * 0.95;
-}
-
-// Keyboard Callback
-void keyboardCallback(unsigned char key, int _x, int _y) {
-    kbstat[key] = 1;
-    update();
-}
-
-void keyboardUpCallback(unsigned char key, int x, int y) {
-    kbstat[key] = 0;
-    update();
-}
-
-// SpecialKeyboard Callback
-void skeyboardCallback(int key, int _x, int _y) {
-//    switch (key) {
-//        case GLUT_KEY_CTRL_L:
-//        case GLUT_KEY_CTRL_R:
-//            kbstat['\x11'] = 1;
-//            break;
-//        case GLUT_KEY_SHIFT_L:
-//        case GLUT_KEY_SHIFT_R:
-//            kbstat['\x0F'] = 1;
-//            break;
-//    }
-//    update();
-}
-
-void skeyboardUpCallback(int key, int x, int y) {
-//    switch (key) {
-//        case GLUT_KEY_CTRL_L:
-//        case GLUT_KEY_CTRL_R:
-//            kbstat['\x11'] = 0;
-//            break;
-//        case GLUT_KEY_SHIFT_L:
-//        case GLUT_KEY_SHIFT_R:
-//            kbstat['\x0F'] = 0;
-//            break;
-//    }
-//    update();
 }
 
 //For Mouse Input

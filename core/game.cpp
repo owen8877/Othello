@@ -132,7 +132,7 @@ bool Game::liftTheTable() {
         gameStatus = Lifting;
         return true;
     }
-    return false;;
+    return false;
 }
 
 bool Game::pauseGame() {
