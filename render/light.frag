@@ -53,17 +53,21 @@ struct SpotLight {
 in vec3 fragPos;
 in vec3 normal;
 in vec2 texCoords;
+in float fogDepth;
 
 uniform vec3 viewPos;
 uniform DirLight dirLights[NR_POINT_LIGHTS];
 uniform PointLight pointLights[NR_POINT_LIGHTS];
 uniform SpotLight spotLights[NR_POINT_LIGHTS];
 uniform Material material;
+uniform vec3 fogColor;
+uniform float fogCoeff;
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
+vec3 applyFog(vec3 rgb, float distance, vec3 fogColor, float fogCoeff);
 
 out vec4 fragColor;
 
@@ -92,7 +96,7 @@ void main() {
         result += CalcSpotLight(spotLights[i], norm, fragPos, viewDir);
     }
 
-    fragColor = vec4(result, 1.0);
+    fragColor = vec4(applyFog(result, fogDepth, fogColor, fogCoeff), 1.0);
 }
 
 // calculates the color when using a directional light.
@@ -163,4 +167,9 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir) {
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
     return (ambient + diffuse + specular);
+}
+
+vec3 applyFog(vec3 rgb, float distance, vec3 fogColor, float fogCoeff) {
+    float fogAmount = 1.0 - exp(-distance*fogCoeff);
+    return mix(rgb, fogColor, fogAmount);
 }

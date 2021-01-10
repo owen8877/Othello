@@ -27,12 +27,7 @@ double floatingx = 0.0, floatingy = 0.0;
 float backGroundColor = 0.304;
 float fogDensity = 0.00f;
 bool isFocus = false;
-GLfloat fogColorPause[] = {backGroundColor, backGroundColor, backGroundColor, 1.0f};
-float fogColorFocus[] = {0.1f, 0.15f, 0.2f, 0.0f};
-char s_Save[] = "Save";
-char s_Load[] = "Load";
-char s_Save_and_Quit[] = "Save and Quit";
-char s_Quit_without_saving[] = "Quit without Saving";
+glm::vec3 fogColorFocus = {0.15f, 0.25f, 0.35f};
 
 extern double xcenter, ycenter, zcenter;
 extern vector<Stone> stones;
@@ -283,20 +278,9 @@ void initOpenGLOptions() {
 //======================================================================================================================
 // Update fog and lights
 
-void updateFog() {
-//     if (Game::getGameStatus() == Pause) {
-//         glEnable(GL_FOG);
-//         glFogi(GL_FOG_MODE, GL_EXP2);
-//         glFogf(GL_FOG_DENSITY, 0.15f);
-//         glFogfv(GL_FOG_COLOR, fogColorPause);
-//     }
-//     else if (Game::getGameStatus() == Lifting) {
-//         glEnable(GL_FOG);
-//         glFogi(GL_FOG_MODE, GL_EXP);
-//         glFogf(GL_FOG_DENSITY, fogDensity);
-//         glFogfv(GL_FOG_COLOR, fogColorFocus);
-//     }
-//     else glDisable(GL_FOG);
+void updateFog(Shader &lightShader) {
+    lightShader.use();
+    lightShader.setFloat("fogCoeff", fogDensity);
 }
 
 void updateLights(Shader &shader) {
@@ -456,10 +440,10 @@ vector<Vertex_NT> getCubeVertices() {
 vector<Vertex_NT> getFloorVertices() {
     return {
             {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  0.0f}},
-            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 0.0f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 30.0f}},
-            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {30.0f, 30.0f}},
-            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  30.0f}},
+            {{0.5f,  -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {60.0f, 0.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {60.0f, 60.0f}},
+            {{0.5f,  0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {60.0f, 60.0f}},
+            {{-0.5f, 0.5f,  0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  60.0f}},
             {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f,  0.0f}},
     };
 }
@@ -680,6 +664,7 @@ void displayThread(const bool *gameEnds) {
     // Set-up shaders and textures
     lightShader.use();
     lightShader.setFloat("material.shininess", 32.0f);
+    lightShader.setVec3("fogColor", fogColorFocus);
 
     int boxDtex, boxStex, ceramicTileDtex, blankTex, paletteTex, stoneDtex, tableDtex;
     {
@@ -808,7 +793,7 @@ void displayThread(const bool *gameEnds) {
         glClearColor(backGroundColor, backGroundColor, backGroundColor, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        updateFog(); // TODO
+        updateFog(lightShader);
         updateLights(lightShader);
 
         // Objects needed to be lightened
@@ -906,7 +891,7 @@ void displayThread(const bool *gameEnds) {
         // Floor
         {
             auto floorModelMat = glm::mat4(1.0f);
-            floorModelMat = glm::scale(floorModelMat, glm::vec3(60.0f));
+            floorModelMat = glm::scale(floorModelMat, glm::vec3(120.0f));
             lightShader.use();
             lightShader.setMat4("model", floorModelMat);
             floor.draw();
@@ -924,7 +909,7 @@ void displayThread(const bool *gameEnds) {
             simpleShader.setMat4("model", lightModelMat);
             simpleShader.setVec4("uniformColor", pointLight.diffuse[0], pointLight.diffuse[1], pointLight.diffuse[2],
                                  1.0f);
-            light.draw();
+            // light.draw();
         }
         for (auto const &spotLight : spotLights) {
             if (!spotLight.enabled) {
@@ -936,7 +921,7 @@ void displayThread(const bool *gameEnds) {
             simpleShader.setMat4("model", lightModelMat);
             simpleShader.setVec4("uniformColor", spotLight.diffuse[0], spotLight.diffuse[1], spotLight.diffuse[2],
                                  1.0f);
-            light.draw();
+            // light.draw();
         }
 
         withColorShader.use();
