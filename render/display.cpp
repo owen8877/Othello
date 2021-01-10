@@ -256,16 +256,12 @@ GLFWwindow *initGLFW() {
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetWindowSizeCallback(window, reshapeCallback);
 
+#ifdef __EMSCRIPTEN__
+    emscripten_request_fullscreen("#canvas", true);
+#else
     // tell GLFW to capture our mouse
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // glad: load all OpenGL function pointers
-// ---------------------------------------
-//    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-//    {
-//        std::cout << "Failed to initialize GLAD" << std::endl;
-//        return -1;
-//    }
+#endif
 
     return window;
 }
@@ -654,15 +650,6 @@ void main_loop() { loop(); }
 //#define __EMSCRIPTEN__
 
 void displayThread(const bool *gameEnds) {
-    // glutMouseFunc(&mouseKey);
-    // glutMotionFunc(&handleMouseMotion);
-    // glutPassiveMotionFunc(&handleMouseMotion);
-    // glutReshapeFunc(&reshape);
-    // glutKeyboardFunc(&keyboardCallback);
-    // glutSpecialFunc(&skeyboardCallback);
-    // glutKeyboardUpFunc(&keyboardUpCallback);
-    // glutSpecialUpFunc(&skeyboardUpCallback);
-    // glutTimerFunc(0, &updateRenderStatus, 0);done
 
     // Init
     GLFWwindow *window = initGLFW();
@@ -794,8 +781,6 @@ void displayThread(const bool *gameEnds) {
         // Bind camera to spotLight0
         spotLights[0].position = camera.Position;
         spotLights[0].direction = camera.Front;
-
-        // TODO: Update zoom as well
 
         float lr_ratio = (float) screenWidth / (float) screenSize * camera.Zoom;
         float bt_ratio = (float) screenHeight / (float) screenSize * camera.Zoom;
