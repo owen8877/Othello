@@ -648,7 +648,7 @@ std::function<void()> loop;
 
 void main_loop() { loop(); }
 
-//#define __EMSCRIPTEN__
+#define __EMSCRIPTEN__
 
 void displayThread(const bool *gameEnds) {
     // glutMouseFunc(&mouseKey);
@@ -757,7 +757,15 @@ void displayThread(const bool *gameEnds) {
         if (Game::canContinue()) {
 //            player[Game::playerIsWho()]->print();
             if (Game::canPlayerPlay(Game::getSideFlag())) {
-                if (!Game::setPiece((player[Game::playerIsWho()])->getPiece())) {
+                Piece p = (player[Game::playerIsWho()])->getPiece();
+                if (!Game::setPiece(p)) {
+                    if (Game::getSideFlag() == BLACK_SIDE) {
+                        Game::getBoard().blackRecord.response.push_back({p.getX(), p.getY()});
+                        Game::getBoard().whiteRecord.request.push_back({p.getX(), p.getY()});
+                    } else {
+                        Game::getBoard().whiteRecord.response.push_back({p.getX(), p.getY()});
+                        Game::getBoard().blackRecord.request.push_back({p.getX(), p.getY()});
+                    }
                     Game::switchSide();
                 }
             } else {
