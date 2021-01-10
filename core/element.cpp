@@ -1,7 +1,7 @@
 #include "element.h"
 #include "game.h"
 
-int dir[8][2] = {{0,  1},
+int dir2[8][2] = {{0,  1},
                  {0,  -1},
                  {1,  0},
                  {-1, 0},
@@ -83,7 +83,7 @@ void Board::refreshCount() {
 bool Board::isValidCal(int x, int y, bool gameSide) {
     Status r = (gameSide == BLACK_SIDE) ? White : Black;
     for (int l = 0; l < 8; ++l) {
-        int dx = dir[l][0], dy = dir[l][1];
+        int dx = dir2[l][0], dy = dir2[l][1];
         if (pieces[x + dx][y + dy] == r) {
             for (int m = 2; inRange(x + m * dx, y + m * dy); ++m) {
                 if (pieces[x + m * dx][y + m * dy] == r) continue;
@@ -131,6 +131,8 @@ Board::Board() {
     pieces[5][5] = White;
     pieces[4][5] = Black;
     pieces[5][4] = Black;
+
+    blackRecord.request.push_back({-1, -1});
     refresh();
 }
 
@@ -173,7 +175,7 @@ int Board::overturn(Piece p) {
     Status othercolor = rev(flipcolor);
 
     for (int l = 0; l < 8; ++l) {
-        int dx = dir[l][0], dy = dir[l][1];
+        int dx = dir2[l][0], dy = dir2[l][1];
         if (pieces[x + dx][y + dy] == othercolor) {
             bool flag = false;
             int m;

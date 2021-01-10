@@ -78,7 +78,7 @@ int Game::setPiece(Piece p) {
     }
 }
 
-Board Game::getBoard() {
+Board& Game::getBoard() {
     return b;
 }
 

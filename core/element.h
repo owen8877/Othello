@@ -2,6 +2,7 @@
 #define ELEMENT_H
 
 #include "../base.h"
+#include "ab-branch.h"
 #include <fstream>
 #include <vector>
 #include <tuple>
@@ -39,6 +40,8 @@ private:
     int buildFromPair(pair<unsigned long long, unsigned long long> p);
 
 public:
+    Record blackRecord, whiteRecord;
+
     Board();
     int getSize() { return size; }
     Piece getPiece(int x, int y);

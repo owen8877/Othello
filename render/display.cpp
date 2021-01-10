@@ -648,7 +648,7 @@ std::function<void()> loop;
 
 void main_loop() { loop(); }
 
-#define __EMSCRIPTEN__
+//#define __EMSCRIPTEN__
 
 void displayThread(const bool *gameEnds) {
     // glutMouseFunc(&mouseKey);

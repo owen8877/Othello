@@ -108,10 +108,30 @@ void Othello_game(int p0, int p1) {
         Game::getBoard().print();
         //player[Game::playerIsWho()]->print();
         if (Game::canPlayerPlay(Game::getSideFlag())) {
-            while (Game::setPiece((player[Game::playerIsWho()])->getPiece()));
+            Piece p = Piece(0, 0, Empty);
+            while (true) {
+                p = (player[Game::playerIsWho()])->getPiece();
+                if (!Game::setPiece(p)) {
+                    break;
+                }
+            }
+            if (Game::getSideFlag() == BLACK_SIDE) {
+                Game::getBoard().blackRecord.response.push_back({p.getX(), p.getY()});
+                Game::getBoard().whiteRecord.request.push_back({p.getX(), p.getY()});
+            } else {
+                Game::getBoard().whiteRecord.response.push_back({p.getX(), p.getY()});
+                Game::getBoard().blackRecord.request.push_back({p.getX(), p.getY()});
+            }
         } else {
             printf("You have no place to toss your piece!\n");
             Game::jump();
+            if (Game::getSideFlag() == BLACK_SIDE) {
+                Game::getBoard().blackRecord.response.push_back({-1, -1});
+                Game::getBoard().whiteRecord.request.push_back({-1, -1});
+            } else {
+                Game::getBoard().whiteRecord.response.push_back({-1, -1});
+                Game::getBoard().blackRecord.request.push_back({-1, -1});
+            }
         }
         Game::switchSide();
     }

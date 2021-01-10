@@ -21,7 +21,7 @@ public:
 
     static bool gameStart(int p0, int p1);
 
-    static Board getBoard();
+    static Board & getBoard();
 
     static bool getSideFlag();
 

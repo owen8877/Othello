@@ -17,7 +17,7 @@ message(STATUS "Cmake prefix path: ${CMAKE_PREFIX_PATH}")
 file(GLOB Othello_src "*/*.h" "*/*.cpp" "*.h" "*.cpp")
 list(FILTER Othello_src EXCLUDE REGEX "Othello_submit.cpp")
 
-add_executable(Othello ${Othello_src})
+add_executable(Othello ${Othello_src} core/ab-branch.h)
 set_target_properties(${PROJECT_NAME} PROPERTIES CMAKE_DEBUG_POSTFIX _d)
 
 # pthread
